@@ -192,7 +192,7 @@
                             <li class="flex items-center gap-1">⭕️ 按表符、簡慢回覆、貼圖</li>
                             <li class="flex items-center gap-1 text-rose-600 font-medium">❌ 已讀不回</li>
                         </ul>
-                        <p class="text-xs text-slate-400 mt-1">※ 訊息點兩下就能按表符了。已讀不回會先提醒一次，下次再發生就不會再接受換檔請求。</p>
+                        <p class="text-xs text-slate-400 mt-1">※ 訊息點 duas 下就能按表符了。已讀不回會先提醒一次，下次再發生就不會再接受換檔請求。</p>
                     </div>
                 </div>
             </div>
@@ -500,8 +500,8 @@
             albumPrices = [];
             japanStepPrices = []; // 重置階梯運費陣列
 
-            let liveNoticeOpenVal = "目前開放中：ND⁵ 音檔"; // 預設防呆值
-            let liveNoticePendingVal = "待開放：Snow Man 十三單中字"; // 預設防呆值
+            let liveNoticeOpenVal = "目前開放中：暫無資料"; // 預設防呆值
+            let liveNoticePendingVal = "待開放：暫無資料"; // 預設防呆值
 
             data.table.rows.forEach((row, rowIndex) => {
                 // A、B 欄：週邊與國際運費
@@ -534,12 +534,12 @@
                     });
                 }
 
-                // K、L 欄：抓取換檔公告 (從第2列，也就是索引1開始拿資料)
-                if (rowIndex === 1) {
-                    if (row.c[10] && row.c[10].v !== null) {
+                // K、L 欄：抓取換檔公告 (修正：試算表中的 K1、L1 對應到陣列索引 0)
+                if (rowIndex === 0) {
+                    if (row.c[10] && row.c[10].v !== null && String(row.c[10].v).trim() !== "") {
                         liveNoticeOpenVal = String(row.c[10].v).trim();
                     }
-                    if (row.c[11] && row.c[11].v !== null) {
+                    if (row.c[11] && row.c[11].v !== null && String(row.c[11].v).trim() !== "") {
                         liveNoticePendingVal = String(row.c[11].v).trim();
                     }
                 }
