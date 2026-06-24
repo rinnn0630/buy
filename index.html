@@ -169,10 +169,8 @@
                     class="hidden border-t border-slate-100 p-5 text-sm text-slate-600 space-y-4 leading-relaxed bg-white">
                     <div>
                         <h4 class="font-bold text-indigo-600 mb-1">📢 當前開放資訊</h4>
-                        <p class="pl-2">目前開放中：<span id="liveNoticeOpen" class="font-medium text-slate-800">載入中...</span>
-                        </p>
-                        <p class="pl-2">待開放：<span id="liveNoticePending"
-                                class="font-medium text-slate-800">載入中...</span></p>
+                        <p id="liveNoticeOpen" class="pl-2 text-slate-600">載入中...</p>
+                        <p id="liveNoticePending" class="pl-2 text-slate-600">載入中...</p>
                     </div>
                     <hr class="border-slate-100">
                     <div>
@@ -547,7 +545,7 @@
                 }
             });
 
-            // 渲染抓到的換檔公告到畫面上
+            // 渲染抓到的換檔公告到畫面上（完全採用試算表中的完整文字內容）
             document.getElementById('liveNoticeOpen').innerText = liveNoticeOpenVal;
             document.getElementById('liveNoticePending').innerText = liveNoticePendingVal;
 
