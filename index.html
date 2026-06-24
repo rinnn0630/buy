@@ -169,8 +169,10 @@
                     class="hidden border-t border-slate-100 p-5 text-sm text-slate-600 space-y-4 leading-relaxed bg-white">
                     <div>
                         <h4 class="font-bold text-indigo-600 mb-1">📢 當前開放資訊</h4>
-                        <p class="pl-2">目前開放中：ND⁵ 音檔</p>
-                        <p class="pl-2">待開放：Snow Man 十三單中字</p>
+                        <p class="pl-2">目前開放中：<span id="liveNoticeOpen" class="font-medium text-slate-800">載入中...</span>
+                        </p>
+                        <p class="pl-2">待開放：<span id="liveNoticePending"
+                                class="font-medium text-slate-800">載入中...</span></p>
                     </div>
                     <hr class="border-slate-100">
                     <div>
@@ -295,7 +297,7 @@
 
         const ORDERS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=419241956`;
         const GROUPS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=1966121219`;
-        const SHIPPING_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=運費單價`;
+        const SHIPPING_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=運費計算`;
 
         let orderDatabase = [];
         let groupDatabase = [];
@@ -500,7 +502,10 @@
             albumPrices = [];
             japanStepPrices = []; // 重置階梯運費陣列
 
-            data.table.rows.forEach(row => {
+            let liveNoticeOpenVal = "目前開放中：ND⁵ 音檔"; // 預設防呆值
+            let liveNoticePendingVal = "待開放：Snow Man 十三單中字"; // 預設防呆值
+
+            data.table.rows.forEach((row, rowIndex) => {
                 // A、B 欄：週邊與國際運費
                 if (row.c[0] && row.c[0].v !== null && String(row.c[0].v).trim() !== "" && String(row.c[0].v).trim() !== "品名" && String(row.c[0].v).trim() !== "週邊品名") {
                     shippingPrices.push({
@@ -530,7 +535,21 @@
                         price: domesticPrice + internationalPrice
                     });
                 }
+
+                // K、L 欄：抓取換檔公告 (從第2列，也就是索引1開始拿資料)
+                if (rowIndex === 1) {
+                    if (row.c[10] && row.c[10].v !== null) {
+                        liveNoticeOpenVal = String(row.c[10].v).trim();
+                    }
+                    if (row.c[11] && row.c[11].v !== null) {
+                        liveNoticePendingVal = String(row.c[11].v).trim();
+                    }
+                }
             });
+
+            // 渲染抓到的換檔公告到畫面上
+            document.getElementById('liveNoticeOpen').innerText = liveNoticeOpenVal;
+            document.getElementById('liveNoticePending').innerText = liveNoticePendingVal;
 
             // 確保階梯規則是由小到大排序，避免後台填寫順序跳掉出錯
             japanStepPrices.sort((a, b) => a.limit - b.limit);
