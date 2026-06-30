@@ -19,6 +19,7 @@
 
     <div class="max-w-4xl mx-auto space-y-8">
 
+        <!-- 雲端庫連線狀態 -->
         <div class="bg-white rounded-2xl shadow-sm p-6 text-center border border-slate-100">
             <h1 class="text-2xl font-bold text-slate-800 mb-2">🛍️ 訂單與團務查詢系統</h1>
             <div id="syncStatus"
@@ -27,6 +28,7 @@
             </div>
         </div>
 
+        <!-- 🛒 代購下單購物車（買家專用） -->
         <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100 space-y-4">
             <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <span class="w-1.5 h-5 bg-teal-500 rounded-full"></span> 🛒 代購下單購物車（買家專用）
@@ -45,17 +47,26 @@
 
             <div id="cartRowsContainer" class="space-y-3"></div>
 
-            <div class="bg-teal-50/50 border border-teal-100 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-3">
-                <div>
+            <div class="bg-teal-50/50 border border-teal-100 p-4 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="w-full md:w-auto text-center md:text-left">
                     <span class="text-teal-800 font-medium text-xs block mb-0.5">💰 購買商品總計 (不含國內外運費)</span>
                     <span id="cartTotalPay" class="font-bold font-mono text-teal-700 text-xl">NT$ 0</span>
                 </div>
-                <button onclick="copyCartDetails()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-5 py-2.5 rounded-xl transition shadow-sm cursor-pointer">
-                    📋 複製訂單明細傳給團主
-                </button>
+                <div class="flex flex-col sm:flex-row w-full md:w-auto gap-3 shrink-0">
+                    <button onclick="copyCartDetails()" class="w-full sm:flex-1 bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm px-5 py-2.5 rounded-xl transition shadow-sm cursor-pointer whitespace-nowrap">
+                        📋 複製訂單明細傳給團主
+                    </button>
+                    <div class="flex flex-col w-full sm:flex-1">
+                        <span class="text-[10px] text-amber-600 font-bold text-center mb-1 animate-pulse shrink-0">⚠️ 先私訊團主確認有餘量再填單</span>
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdaQ1Wgr7GvF_Sy4uJICahMEFGf07uSX-usk2e1c_-BDVqDUw/viewform?usp=publish-editor" target="_blank" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-medium text-sm px-5 py-2.5 rounded-xl transition shadow-sm whitespace-nowrap">
+                            📝 填寫正式表單
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
 
+        <!-- 🔎 快速買家檢索 -->
         <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100">
             <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <span class="w-1.5 h-5 bg-indigo-600 rounded-full"></span> 🔎 快速買家檢索
@@ -87,6 +98,7 @@
             </div>
         </div>
 
+        <!-- 🧮 運費二補計算機 -->
         <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100 space-y-4">
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                 <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -135,6 +147,7 @@
             </div>
         </div>
 
+        <!-- 📦 當前各團最新進度公告 -->
         <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
             <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <span class="w-1.5 h-5 bg-emerald-500 rounded-full"></span> 📦 當前各團最新進度
@@ -163,6 +176,7 @@
             </div>
         </div>
 
+        <!-- 規則公告欄 -->
         <div class="space-y-4">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <button onclick="toggleSection('registerContent', 'registerArrow')"
@@ -256,6 +270,7 @@
             </div>
         </div>
 
+        <!-- 🔐 後台管理數量統計（已放置於最底部，密碼：920624） -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <button onclick="toggleAdminSection()"
                 class="w-full flex items-center justify-between p-4 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200/80 transition outline-none cursor-pointer">
@@ -323,7 +338,9 @@
             </div>
         </div>
 
-    </div> <script>
+    </div> <!-- 結束最大寬度容器 -->
+
+    <script>
         const SPREADSHEET_ID = "1iRFTcgHfn75kGTYMPlIihpUg-wzNoIuKJUQUEM8AwK4";
 
         const ORDERS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=419241956`;
@@ -425,7 +442,7 @@
             detailsText += `※ 注意：此金額不包含後續二補的國內外運費。`;
 
             navigator.clipboard.writeText(detailsText).then(() => {
-                alert("🎉 訂單明細已成功複製到剪貼簿！請直接私訊貼給團主驗證。");
+                alert("🎉 訂單明細已成功複製到剪貼簿！請直接私訊貼給團主確認。");
             }).catch(err => {
                 alert("複製失敗，請手動選取複製。");
             });
