@@ -16,9 +16,6 @@ async function initSystem() {
         document.getElementById('calcDescText').innerText = "運費資料同步成功";
         switchCalcMode('goods');
 
-        // 初始化購物車第一列
-        addCartRow();
-
         // 更新同步狀態
         const statusEl = document.getElementById('syncStatus');
         statusEl.className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800";
