@@ -12,6 +12,13 @@
             background-color: #f8fafc;
             font-family: system-ui, -apple-system, sans-serif;
         }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
+        }
     </style>
 </head>
 
@@ -344,61 +351,15 @@
 
     </div>
 
-    <script>
-        const SPREADSHEET_ID = "1iRFTcgHfn75kGTYMPlIihpUg-wzNoIuKJUQUEM8AwK4";
+    <!-- 依序載入模組，順序不可調換 -->
+    <script src="utils.js"></script>
+    <script src="data.js"></script>
+    <script src="cart.js"></script>
+    <script src="search.js"></script>
+    <script src="calc.js"></script>
+    <script src="group-status.js"></script>
+    <script src="admin.js"></script>
+    <script src="init.js"></script>
+</body>
 
-        const ORDERS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=419241956`;
-        const GROUPS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=1966121219`;
-        
-        // --- 核心連線工具：使用最穩定的 JSON API 並指定分頁名稱 ---
-        async function fetchCloudData(sheetName) {
-            const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${sheetName}&headers=0`;
-            const res = await fetch(url);
-            const text = await res.text();
-            const start = text.indexOf('{');
-            const end = text.lastIndexOf('}');
-            if (start === -1 || end === -1) {
-                throw new Error(`無法解析分頁 [${sheetName}]，請確認試算表已發布該頁籤！`);
-            }
-            return JSON.parse(text.substring(start, end + 1));
-        }
-
-        let orderDatabase = [];
-        let groupDatabase = [];
-        let shippingPrices = [];
-        let albumPrices = [];
-        let cartGroupItems = {}; 
-        let japanStepPrices = []; 
-        let customerFormDatabase = []; 
-        let currentCalcMode = 'goods';
-        let isAdminAuthenticated = false;
-
-        const MEMBER_STYLES = [
-            "無選款", "岩本💛", "深澤💜", "ラウ🤍", "渡辺💙", "向井🧡", "阿部💚", "目黒🖤", "宮舘❤️", "佐久間 🩷"
-        ];
-
-        // --- 購物車功能邏輯 ---
-        function handleGroupChange() {
-            document.getElementById('cartRowsContainer').innerHTML = '';
-            calculateCartTotal();
-            addCartRow();
-        }
-
-        function addCartRow() {
-            const container = document.getElementById('cartRowsContainer');
-            const rowId = 'cart_row_' + Date.now();
-            const currentGroup = document.getElementById('cartGroupSelect').value;
-
-            let optionsHtml = `<option value="">選擇商品...</option>`;
-            
-            if (currentGroup && cartGroupItems[currentGroup]) {
-                cartGroupItems[currentGroup].forEach(item => {
-                    optionsHtml += `<option value="${item.name}" data-price="${item.price}">${item.name} ($${item.price})</option>`;
-                });
-            }
-
-            let styleOptionsHtml = MEMBER_STYLES.map(style => `<option value="${style === '無選款' ? '' : style}">${style}</option>`).join('');
-
-            const rowHtml = `
-                <div id="${rowId}" class="flex gap-2 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn">
-                    <select class="cartItemSelect flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange
+</html>
