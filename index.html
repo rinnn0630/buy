@@ -350,7 +350,7 @@
         let albumPrices = [];
         let cartSheetPrices = []; 
         let japanStepPrices = []; 
-        let customerFormDatabase = []; // 存儲雲端表單進來的正式名單
+        let customerFormDatabase = []; 
         let currentCalcMode = 'goods';
         let isAdminAuthenticated = false;
 
@@ -486,9 +486,7 @@
 
             let productTotals = {};
 
-            // 遍歷所有雲端表單進來的每一筆訂單
             customerFormDatabase.forEach(order => {
-                // 1. 渲染買家明細表
                 buyersBody.innerHTML += `
                     <tr class="hover:bg-slate-50">
                         <td class="p-2.5 text-slate-400 text-[11px] font-mono">${order.timestamp}</td>
@@ -498,18 +496,17 @@
                     </tr>
                 `;
 
-                // 2. 利用正則表達式，智能拆解明細文字中隱藏的 商品名稱 與 數量，來進行自動統計
-                // 正則精準瞄準明細中像是 "🔹 商品名稱 x 數字" 的結構
-                const regex = /🔹\s*(.+?)\s*x\s*(\hd+)/g;
+                // 智能正則拆解（修正手誤 \hd ➡️ \d 並且支援過濾掉括號單價）
+                const regex = /🔹\s*([^\n\r]+?)\s*x\s*(\d+)/g;
                 let match;
                 while ((match = regex.exec(order.details)) !== null) {
-                    const prodName = match[1].trim();
+                    // 如果品項名稱後面夾帶了單價括號（例如：場刊 ($625/件)），用程式把它切掉，只保留純品名
+                    let prodName = match[1].replace(/\s*\([^)]+\)/g, "").trim();
                     const qty = parseInt(match[2]) || 0;
                     productTotals[prodName] = (productTotals[prodName] || 0) + qty;
                 }
             });
 
-            // 3. 渲染廠商集單統計表
             const productEntries = Object.entries(productTotals);
             if (productEntries.length === 0) {
                 summaryBody.innerHTML = `<tr><td colspan="2" class="p-3 text-center text-amber-500">⚠️ 明細中有抓到文字，但未能順利識別商品名稱，請確保買家貼上的格式包含「🔹 品名 x 數量」唷！</td></tr>`;
@@ -525,7 +522,7 @@
             }
         }
 
-        // --- 核心資料讀取與初始化邏輯 ---
+        // --- 核心共用資料讀取與初始化邏輯 ---
         function switchCalcMode(mode) {
             currentCalcMode = mode;
             const tabGoods = document.getElementById('tab_goods');
@@ -775,7 +772,6 @@
             }
         }
 
-        // 新增：從試算表全自動撈取「顧客填單」分頁中的顧客訂單
         async function fetchCustomerFormData() {
             try {
                 const response = await fetch(CUSTOMER_FORM_URL);
@@ -785,7 +781,6 @@
 
                 customerFormDatabase = [];
                 data.table.rows.forEach(row => {
-                    // A:時間戳記, B:買家名稱, C:購買商品明細, D:商品總金額
                     if (row.c[1] && row.c[1].v !== null && String(row.c[1].v).trim() !== "") {
                         customerFormDatabase.push({
                             timestamp: row.c[0] && row.c[0].f ? String(row.c[0].f) : (row.c[0] ? String(row.c[0].v) : '-'),
@@ -809,7 +804,7 @@
 
                 await fetchCrossColumnPrices();
                 await fetchCartSheetPrices(); 
-                await fetchCustomerFormData(); // 自動加載正式填單紀錄
+                await fetchCustomerFormData(); 
 
                 orderDatabase = ordersData;
                 groupDatabase = groupsData;
