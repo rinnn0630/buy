@@ -210,7 +210,7 @@
                         <li><strong>衡量自身能力：</strong>喊單前請衡量自身能力，確定要購買的品項再喊單登記。在我下單前還有名額都可以追加，如果真的不得已要取消請儘早通知我，在通知匯款時才取消會<span
                                 class="text-rose-600 font-semibold">黑單處理</span>（會先提醒）。</li>
                         <li><strong>網店限購規則：</strong>網店有限購，熱門品項通常都是買多的客人優先，買少的客人順位會排在後面。</li>
-                        <li><strong>結算下單說明：</strong>訂單湊得差不多的時候，我會開始結算最後下單數量，陸續通知有排到的客人匯款，不會再排其他客人的單了（除非還有餘量可以追加）。結算時突然取消的話數量空下來我沒辦法接其他單遞補，日本運費不便宜，這樣只下單1個不劃算，所以我會把每單都盡量塞滿。</li>
+                        <li><strong>結算下單說明：</strong>訂單湊得差不多的時候，我會開始結算最後下單數量，陸續通知有排到的客人匯款，不會再排開他的單了（除非還有餘量可以追加）。結算時突然取消的話數量空下來我沒辦法接其他單遞補，日本運費不便宜，這樣只下單1個不劃算，所以我會把每單都盡量塞滿。</li>
                         <li><strong>售後交易規範：</strong>交易過程如有任何不愉快，結束交易後將不再接您的單，避免後續出現其他糾紛。</li>
                     </ul>
                 </div>
@@ -288,7 +288,7 @@
             </div>
         </div>
 
-        <!-- 🔐 後台管理數量統計（密碼：920624） -->
+        <!-- 🔐 後台管理數量統計（已同步自動化，密碼：920624） -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <button onclick="toggleAdminSection()"
                 class="w-full flex items-center justify-between p-4 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200/80 transition outline-none cursor-pointer">
@@ -391,7 +391,6 @@
                 ).join('');
             }
 
-            // 建立款式下拉選單的 HTML
             let styleOptionsHtml = MEMBER_STYLES.map(style => `<option value="${style === '無選款' ? '' : style}">${style}</option>`).join('');
 
             const rowHtml = `
@@ -457,7 +456,6 @@
                     const price = parseInt(selectedOption.getAttribute('data-price')) || 0;
                     const qty = parseInt(row.querySelector('.cartItemQty').value) || 0;
                     
-                    // 組合商品名稱 + 款式色
                     detailsText += `🔹 ${name}${styleVal} x ${qty} ($${price}/件)\n`;
                     totalPay += (qty * price);
                     hasItems = true;
@@ -533,14 +531,12 @@
                     </tr>
                 `;
 
-                // 正則拆解：能精確包容「🔹 品名款式(可含愛心) x 數量」
                 const regex = /🔹\s*([^\n\r]+?)\s*x\s*(\d+)/g;
                 let match;
                 while ((match = regex.exec(order.details)) !== null) {
-                    // 濾掉後面的價格括號
-                    let fullProdName = match[1].replace(/\s*\([^)]+\)/g, "").trim();
+                    let prodName = match[1].replace(/\s*\([^)]+\)/g, "").trim();
                     const qty = parseInt(match[2]) || 0;
-                    productTotals[fullProdName] = (productTotals[fullProdName] || 0) + qty;
+                    productTotals[prodName] = (productTotals[prodName] || 0) + qty;
                 }
             });
 
@@ -711,6 +707,7 @@
             document.getElementById('resTotalPay').innerText = `NT$ ${japanPay + intlPay}`;
         }
 
+        // 摺疊區塊功能
         function toggleSection(contentId, arrowId) {
             const content = document.getElementById(contentId);
             const arrow = document.getElementById(arrowId);
@@ -748,19 +745,7 @@
             let liveNoticeOpenVal = "目前開放中：暫無資料";
             let liveNoticePendingVal = "待開放：暫無資料";
 
-            // 動態提取自訂團務名稱 (A1, D1, G1...)
-            let groupOptions = [];
-
             data.table.rows.forEach((row, rowIndex) => {
-                // 讀取第 1 列 (標題列)，每隔 3 欄抓取團務名稱
-                if (rowIndex === 0 && row.c) {
-                    for (let colIdx = 0; colIdx < row.c.length; colIdx += 3) {
-                        if (row.c[colIdx] && row.c[colIdx].v !== null && String(row.c[colIdx].v).trim() !== "") {
-                            groupOptions.push(String(row.c[colIdx].v).trim());
-                        }
-                    }
-                }
-
                 if (row.c[0] && row.c[0].v !== null && String(row.c[0].v).trim() !== "" && String(row.c[0].v).trim() !== "品名" && String(row.c[0].v).trim() !== "週邊品名") {
                     shippingPrices.push({
                         name: String(row.c[0].v).trim(),
@@ -795,19 +780,12 @@
                 }
             });
 
-            // 渲染跟團下拉選單
-            const groupSelect = document.getElementById('cartGroupSelect');
-            if (groupOptions.length > 0) {
-                groupSelect.innerHTML = groupOptions.map(g => `<option value="${g}">${g}</option>`).join('');
-            } else {
-                groupSelect.innerHTML = `<option value="未註明團務">未命名團務</option>`;
-            }
-
             document.getElementById('liveNoticeOpen').innerText = liveNoticeOpenVal;
             document.getElementById('liveNoticePending').innerText = liveNoticePendingVal;
             japanStepPrices.sort((a, b) => a.limit - b.limit);
         }
 
+        // 修改：從「購物車」頁籤撈取商品與動態開團欄位(A1, D1, G1...)
         async function fetchCartSheetPrices() {
             try {
                 const response = await fetch(CART_ITEMS_URL);
@@ -816,7 +794,18 @@
                 const data = JSON.parse(jsonString);
 
                 cartSheetPrices = [];
-                data.table.rows.forEach(row => {
+                let groupOptions = [];
+
+                data.table.rows.forEach((row, rowIndex) => {
+                    // 修正：從「購物車」分頁第 1 列動態提取開團名稱 
+                    if (rowIndex === 0 && row.c) {
+                        for (let colIdx = 0; colIdx < row.c.length; colIdx += 3) {
+                            if (row.c[colIdx] && row.c[colIdx].v !== null && String(row.c[colIdx].v).trim() !== "") {
+                                groupOptions.push(String(row.c[colIdx].v).trim());
+                            }
+                        }
+                    }
+
                     if (row.c[0] && row.c[0].v !== null && String(row.c[0].v).trim() !== "" && String(row.c[0].v).trim() !== "品名" && String(row.c[0].v).trim() !== "商品名稱") {
                         cartSheetPrices.push({
                             name: String(row.c[0].v).trim(),
@@ -824,6 +813,15 @@
                         });
                     }
                 });
+
+                // 渲染跟團選單
+                const groupSelect = document.getElementById('cartGroupSelect');
+                if (groupOptions.length > 0) {
+                    groupSelect.innerHTML = groupOptions.map(g => `<option value="${g}">${g}</option>`).join('');
+                } else {
+                    groupSelect.innerHTML = `<option value="未註明團務">未命名團務</option>`;
+                }
+
             } catch (err) {
                 console.error("購物車頁籤抓取失敗：", err);
             }
