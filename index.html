@@ -31,11 +31,10 @@
             <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <span class="w-1.5 h-5 bg-teal-500 rounded-full"></span> 🛒 代購下單購物車（買家專用）
             </h2>
-            <p class="text-xs text-slate-400">請在下方選取您欲購買的商品與數量，確認無誤後可一鍵複製明細私訊傳給我唷！</p>
+            <p class="text-xs text-slate-400">請在下方選取欲購買的商品與數量，確認無誤後可一鍵複製明細私訊傳給我唷！</p>
             
             <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <div class="flex items-center gap-2 flex-1 mr-2">
-                    <span class="text-xs font-bold text-slate-600 shrink-0">您的稱呼:</span>
                     <input type="text" id="cartBuyerName" placeholder="填寫名稱以便後台紀錄" class="w-full max-w-xs px-2.5 py-1 bg-white border border-slate-200 rounded-lg outline-none text-xs text-slate-700">
                 </div>
                 <button onclick="addCartRow()"
@@ -52,75 +51,8 @@
                     <span id="cartTotalPay" class="font-bold font-mono text-teal-700 text-xl">NT$ 0</span>
                 </div>
                 <button onclick="copyCartDetails()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-5 py-2.5 rounded-xl transition shadow-sm cursor-pointer">
-                    📋 複製訂單明細傳給主辦
+                    📋 複製訂單明細傳給團主
                 </button>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <button onclick="toggleAdminSection()"
-                class="w-full flex items-center justify-between p-4 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200/80 transition outline-none cursor-pointer">
-                <span class="flex items-center gap-2 text-base text-slate-800">
-                    📊 後台管理：商品下單數量總計與團員清單
-                </span>
-                <span id="adminArrow" class="text-slate-400">▼</span>
-            </button>
-            <div id="adminContent" class="hidden border-t border-slate-100 p-5 space-y-6 bg-white">
-                
-                <div id="adminAuthBlock" class="p-4 bg-slate-50 rounded-xl border border-slate-200 max-w-sm mx-auto text-center space-y-3">
-                    <p class="text-xs text-slate-500 font-medium">🔑 請輸入管理員密碼以查看統計資料</p>
-                    <div class="flex gap-2 justify-center">
-                        <input type="password" id="adminPwd" class="px-3 py-1.5 border border-slate-300 rounded-lg outline-none text-sm text-center">
-                        <button onclick="verifyAdminPassword()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs px-4 py-1.5 rounded-lg font-bold">登入</button>
-                    </div>
-                    <p id="authError" class="text-xs text-rose-500 font-medium hidden">❌ 密碼錯誤！</p>
-                </div>
-
-                <div id="adminDataBlock" class="hidden space-y-6">
-                    <div class="flex flex-wrap gap-2 items-center justify-between border-b border-slate-100 pb-3">
-                        <p class="text-xs text-amber-600 font-medium">💡 可將上方購物車目前的選取品項直接點擊按鈕，暫存至下方統計報表。</p>
-                        <button onclick="saveCurrentCartToAdmin()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">
-                            💾 將上方購物車內容存入後台紀錄
-                        </button>
-                    </div>
-
-                    <div class="space-y-2">
-                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1">📦 1. 廠商下單總數統計 (集單面板)</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs border-collapse">
-                                <thead>
-                                    <tr class="border-b border-slate-200 text-slate-400 bg-slate-50 font-semibold">
-                                        <th class="p-2.5">商品名稱</th>
-                                        <th class="p-2.5 text-center">目前總計需下單數量</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="adminSummaryTable" class="divide-y divide-slate-100 text-slate-600">
-                                    <tr><td colspan="2" class="p-3 text-center text-slate-400">暫無暫存紀錄。</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2">
-                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1">👥 2. 各買家詳細購買清單</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs border-collapse">
-                                <thead>
-                                    <tr class="border-b border-slate-200 text-slate-400 bg-slate-50 font-semibold">
-                                        <th class="p-2.5">買家名稱</th>
-                                        <th class="p-2.5">購買清單明細</th>
-                                        <th class="p-2.5 text-right">小計金額</th>
-                                        <th class="p-2.5 text-center">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="adminBuyersTable" class="divide-y divide-slate-100 text-slate-600">
-                                    <tr><td colspan="4" class="p-3 text-center text-slate-400">暫無暫存紀錄。</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
 
@@ -286,7 +218,7 @@
                             <li class="flex items-center gap-1">⭕️ 按表符、簡短回覆、貼圖</li>
                             <li class="flex items-center gap-1 text-rose-600 font-medium">❌ 已讀不回</li>
                         </ul>
-                        <p class="text-xs text-slate-400 mt-1">※ 訊息點兩下就能按表符了。已讀不回會先提醒一次，下次再發生就不會再接受換檔請求。</p>
+                        <p class="text-xs text-slate-400 mt-1">※ 訊息點兩下就能按表符了。已讀不回會先提醒一次，下次再放生就不會再接受換檔請求。</p>
                     </div>
                 </div>
             </div>
@@ -324,9 +256,74 @@
             </div>
         </div>
 
-    </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <button onclick="toggleAdminSection()"
+                class="w-full flex items-center justify-between p-4 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200/80 transition outline-none cursor-pointer">
+                <span class="flex items-center gap-2 text-base text-slate-800">
+                    📊 後台管理：商品下單數量總計與團員清單
+                </span>
+                <span id="adminArrow" class="text-slate-400">▼</span>
+            </button>
+            <div id="adminContent" class="hidden border-t border-slate-100 p-5 space-y-6 bg-white">
+                
+                <div id="adminAuthBlock" class="p-4 bg-slate-50 rounded-xl border border-slate-200 max-w-sm mx-auto text-center space-y-3">
+                    <p class="text-xs text-slate-500 font-medium">🔑 請輸入管理員密碼以查看統計資料</p>
+                    <div class="flex gap-2 justify-center">
+                        <input type="password" id="adminPwd" class="px-3 py-1.5 border border-slate-300 rounded-lg outline-none text-sm text-center">
+                        <button onclick="verifyAdminPassword()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs px-4 py-1.5 rounded-lg font-bold">登入</button>
+                    </div>
+                    <p id="authError" class="text-xs text-rose-500 font-medium hidden">❌ 密碼錯誤！</p>
+                </div>
 
-    <script>
+                <div id="adminDataBlock" class="hidden space-y-6">
+                    <div class="flex flex-wrap gap-2 items-center justify-between border-b border-slate-100 pb-3">
+                        <p class="text-xs text-amber-600 font-medium">💡 可將上方購物車目前的選取品項直接點擊按鈕，暫存至下方統計報表。</p>
+                        <button onclick="saveCurrentCartToAdmin()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                            💾 將上方購物車內容存入後台紀錄
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1">📦 1. 廠商下單總數統計 (集單面板)</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-slate-400 bg-slate-50 font-semibold">
+                                        <th class="p-2.5">商品名稱</th>
+                                        <th class="p-2.5 text-center">目前總計需下單數量</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminSummaryTable" class="divide-y divide-slate-100 text-slate-600">
+                                    <tr><td colspan="2" class="p-3 text-center text-slate-400">暫無暫存紀錄。</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1">👥 2. 各買家詳細購買清單</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-slate-400 bg-slate-50 font-semibold">
+                                        <th class="p-2.5">買家名稱</th>
+                                        <th class="p-2.5">購買清單明細</th>
+                                        <th class="p-2.5 text-right">小計金額</th>
+                                        <th class="p-2.5 text-center">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminBuyersTable" class="divide-y divide-slate-100 text-slate-600">
+                                    <tr><td colspan="4" class="p-3 text-center text-slate-400">暫無暫存紀錄。</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div> <script>
         const SPREADSHEET_ID = "1iRFTcgHfn75kGTYMPlIihpUg-wzNoIuKJUQUEM8AwK4";
 
         const ORDERS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=419241956`;
@@ -424,11 +421,11 @@
             }
 
             detailsText += `-------------------------\n`;
-            detailsText += `💵 商品預估總金額：NT$ ${totalPay}\n`;
+            detailsText += `💵 商品總金額：NT$ ${totalPay}\n`;
             detailsText += `※ 注意：此金額不包含後續二補的國內外運費。`;
 
             navigator.clipboard.writeText(detailsText).then(() => {
-                alert("🎉 訂單明細已成功複製到剪貼簿！請直接私訊貼給主辦即可。");
+                alert("🎉 訂單明細已成功複製到剪貼簿！請直接私訊貼給團主驗證。");
             }).catch(err => {
                 alert("複製失敗，請手動選取複製。");
             });
