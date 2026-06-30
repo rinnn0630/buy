@@ -11,7 +11,10 @@ function switchCalcMode(mode) {
 
     document.getElementById('japanPayBlock').classList.toggle('hidden', mode === 'album');
     document.getElementById('resTitlePay').innerText = mode === 'goods' ? "✈️ 總國際運費" : "💿 專輯運費總計";
+    
+    // 清空舊的列
     document.getElementById('calcRowsContainer').innerHTML = '';
+    // 只加一列
     addCalcRow();
 }
 
@@ -50,7 +53,8 @@ function removeCalcRow(rowId) {
 
 function handleItemChange(selectEl) {
     const container = document.getElementById('calcRowsContainer');
-    const rows = container.querySelectorAll(':scope > div');
+    // 改用 children 取代 :scope > div，避免瀏覽器相容問題
+    const rows = container.children;
     const selectedValue = selectEl.value;
     if (!selectedValue) { calculateLiveShipping(); return; }
 
@@ -58,7 +62,8 @@ function handleItemChange(selectEl) {
     let targetQtyInput = null;
     const duplicateRows = [];
 
-    rows.forEach(row => {
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
         const currentSelect = row.querySelector('.calcItemType');
         if (currentSelect && currentSelect.value === selectedValue) {
             if (!firstMatchRow) {
@@ -68,7 +73,7 @@ function handleItemChange(selectEl) {
                 duplicateRows.push(row);
             }
         }
-    });
+    }
 
     if (duplicateRows.length > 0 && targetQtyInput) {
         let extraQty = 0;
@@ -82,18 +87,22 @@ function handleItemChange(selectEl) {
 }
 
 function calculateLiveShipping() {
-    const rows = document.querySelectorAll('#calcRowsContainer > div');
+    const container = document.getElementById('calcRowsContainer');
+    const rows = container.children;
     let totalQty = 0;
     let combinedPay = 0;
 
-    rows.forEach(row => {
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
         const select = row.querySelector('.calcItemType');
+        if (!select) continue;
         const selectedOption = select.options[select.selectedIndex];
         const price = selectedOption ? (parseInt(selectedOption.getAttribute('data-price')) || 0) : 0;
-        const qty = parseInt(row.querySelector('.calcItemQty').value) || 0;
+        const qtyInput = row.querySelector('.calcItemQty');
+        const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
         totalQty += qty;
         combinedPay += qty * price;
-    });
+    }
 
     let japanPay = 0;
     let intlPay = 0;
