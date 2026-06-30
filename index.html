@@ -361,6 +361,9 @@
         const ORDERS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=419241956`;
         const GROUPS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=1966121219`;
         const SHIPPING_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=運費計算`;
+        
+        // 修正：跟團選單直接改抓「購物車」CSV 的原始文字串，避免 API 過濾掉標題列！
+        const CART_CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=0`; 
         const CART_ITEMS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=購物車`;
         const CUSTOMER_FORM_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=顧客填單`;
 
@@ -374,7 +377,6 @@
         let currentCalcMode = 'goods';
         let isAdminAuthenticated = false;
 
-        // 定義 Snow Man 成員色清單
         const MEMBER_STYLES = [
             "無選款", "岩本💛", "深澤💜", "ラウ🤍", "渡辺💙", "向井🧡", "阿部💚", "目黒🖤", "宮舘❤️", "佐久間 🩷"
         ];
@@ -526,7 +528,7 @@
                     <tr class="hover:bg-slate-50">
                         <td class="p-2.5 text-slate-400 text-[11px] font-mono">${order.timestamp}</td>
                         <td class="p-2.5 font-bold text-slate-800">${order.buyerName}</td>
-                        <td class="p-2.5 text-slate-600 whitespace-pre-line">${order.details}</td>
+                        <td class="p-2.5 text-slate-600 break-all">${order.details}</td>
                         <td class="p-2.5 text-right font-mono font-bold text-slate-700">NT$ ${order.totalPrice}</td>
                     </tr>
                 `;
@@ -707,7 +709,6 @@
             document.getElementById('resTotalPay').innerText = `NT$ ${japanPay + intlPay}`;
         }
 
-        // 摺疊區塊功能
         function toggleSection(contentId, arrowId) {
             const content = document.getElementById(contentId);
             const arrow = document.getElementById(arrowId);
@@ -724,7 +725,7 @@
             return new Promise((resolve, reject) => {
                 Papa.parse(url, {
                     download: true,
-                    header: true,
+                    header: false, // 修正：跟團選單改用不帶 Header 的陣列模式讀取，防讀取錯位
                     skipEmptyLines: true,
                     complete: (results) => resolve(results.data),
                     error: (error) => reject(error)
@@ -733,6 +734,7 @@
         }
 
         async function fetchCrossColumnPrices() {
+            // 利用不帶 Header 的 JSON 格式解析運費計算
             const response = await fetch(SHIPPING_URL);
             const text = await response.text();
             const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
@@ -785,27 +787,16 @@
             japanStepPrices.sort((a, b) => a.limit - b.limit);
         }
 
-        // 修改：從「購物車」頁籤撈取商品與動態開團欄位(A1, D1, G1...)
         async function fetchCartSheetPrices() {
             try {
+                // 1. 同步抓取購物車商品原價明細
                 const response = await fetch(CART_ITEMS_URL);
                 const text = await response.text();
                 const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
                 const data = JSON.parse(jsonString);
 
                 cartSheetPrices = [];
-                let groupOptions = [];
-
-                data.table.rows.forEach((row, rowIndex) => {
-                    // 修正：從「購物車」分頁第 1 列動態提取開團名稱 
-                    if (rowIndex === 0 && row.c) {
-                        for (let colIdx = 0; colIdx < row.c.length; colIdx += 3) {
-                            if (row.c[colIdx] && row.c[colIdx].v !== null && String(row.c[colIdx].v).trim() !== "") {
-                                groupOptions.push(String(row.c[colIdx].v).trim());
-                            }
-                        }
-                    }
-
+                data.table.rows.forEach(row => {
                     if (row.c[0] && row.c[0].v !== null && String(row.c[0].v).trim() !== "" && String(row.c[0].v).trim() !== "品名" && String(row.c[0].v).trim() !== "商品名稱") {
                         cartSheetPrices.push({
                             name: String(row.c[0].v).trim(),
@@ -814,16 +805,28 @@
                     }
                 });
 
-                // 渲染跟團選單
+                // 2. 修正：用純 CSV 模式讀取「購物車」的第一列 (A1, D1, G1...) 確保百分之百抓到最新的開團名稱
+                const csvData = await parseCloudCSV(CART_CSV_URL);
+                let groupOptions = [];
+                
+                if (csvData.length > 0) {
+                    const firstRow = csvData[0]; // 第一列
+                    for (let colIdx = 0; colIdx < firstRow.length; colIdx += 3) {
+                        if (firstRow[colIdx] && firstRow[colIdx].trim() !== "" && firstRow[colIdx].trim() !== "品名" && firstRow[colIdx].trim() !== "商品名稱") {
+                            groupOptions.push(firstRow[colIdx].trim());
+                        }
+                    }
+                }
+
+                // 3. 渲染跟團務選單
                 const groupSelect = document.getElementById('cartGroupSelect');
                 if (groupOptions.length > 0) {
                     groupSelect.innerHTML = groupOptions.map(g => `<option value="${g}">${g}</option>`).join('');
                 } else {
                     groupSelect.innerHTML = `<option value="未註明團務">未命名團務</option>`;
                 }
-
             } catch (err) {
-                console.error("購物車頁籤抓取失敗：", err);
+                console.error("購物車頁籤讀取失敗：", err);
             }
         }
 
@@ -852,10 +855,14 @@
 
         async function initSystem() {
             try {
-                const [ordersData, groupsData] = await Promise.all([
-                    parseCloudCSV(ORDERS_URL),
-                    parseCloudCSV(GROUPS_URL)
-                ]);
+                // 讀取帶有 Header 的大團公告與歷史訂單
+                const ordersRes = await fetch(ORDERS_URL);
+                const ordersText = await ordersRes.text();
+                const ordersData = Papa.parse(ordersText, { header: true, skipEmptyLines: true }).data;
+
+                const groupsRes = await fetch(GROUPS_URL);
+                const groupsText = await groupsRes.text();
+                const groupsData = Papa.parse(groupsText, { header: true, skipEmptyLines: true }).data;
 
                 await fetchCrossColumnPrices();
                 await fetchCartSheetPrices(); 
@@ -865,7 +872,16 @@
                 groupDatabase = groupsData;
 
                 renderGroupTable();
-                switchCalcMode('goods');
+                
+                // 初始化代購計算機
+                const tabGoods = document.getElementById('tab_goods');
+                const tabAlbum = document.getElementById('tab_album');
+                const descText = document.getElementById('calcDescText');
+                tabGoods.className = "px-4 py-2 rounded-lg bg-white text-slate-800 shadow-sm transition cursor-pointer";
+                tabAlbum.className = "px-4 py-2 rounded-lg text-slate-500 hover:text-slate-700 transition cursor-pointer";
+                descText.innerText = "運費資料同步成功";
+                addCalcRow();
+
                 addCartRow(); 
 
                 document.getElementById('syncStatus').className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800";
