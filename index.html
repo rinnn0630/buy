@@ -19,6 +19,7 @@
 
     <div class="max-w-4xl mx-auto space-y-8">
 
+        <!-- 雲端庫連線狀態 -->
         <div class="bg-white rounded-2xl shadow-sm p-6 text-center border border-slate-100">
             <h1 class="text-2xl font-bold text-slate-800 mb-2">🛍️ 訂單與團務查詢系統</h1>
             <div id="syncStatus"
@@ -27,6 +28,7 @@
             </div>
         </div>
 
+        <!-- 🛒 代購下單購物車（買家專用） -->
         <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100 space-y-4">
             <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <span class="w-1.5 h-5 bg-teal-500 rounded-full"></span> 🛒 代購下單購物車（買家專用）
@@ -40,7 +42,7 @@
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span class="text-xs font-bold text-slate-600 shrink-0">欲跟團名:</span>
-                    <select id="cartGroupSelect" class="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg outline-none text-xs text-slate-700">
+                    <select id="cartGroupSelect" onchange="handleGroupChange()" class="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg outline-none text-xs text-slate-700">
                         <option value="">載入中...</option>
                     </select>
                 </div>
@@ -54,7 +56,9 @@
 
             <div id="cartRowsContainer" class="space-y-3"></div>
 
+            <!-- 結帳與表單區塊面版 -->
             <div class="bg-teal-50/50 border border-teal-100 p-4 rounded-xl space-y-4">
+                <!-- 第一層：商品總計與複製按鈕 -->
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
                     <div class="w-full sm:w-auto text-center sm:text-left">
                         <span class="text-teal-800 font-medium text-xs block mb-0.5">💰 購買商品總計 (不含國內外運費)</span>
@@ -65,8 +69,10 @@
                     </button>
                 </div>
 
+                <!-- 分隔線 -->
                 <hr class="border-teal-100">
 
+                <!-- 第二層：正式表單填寫區 -->
                 <div class="flex flex-col items-center justify-center space-y-1.5 pt-1">
                     <span class="text-xs text-amber-600 font-bold text-center animate-pulse flex items-center gap-1">
                         ⚠️ 填單前請先私訊團主確認是否還有餘量唷！
@@ -78,6 +84,7 @@
             </div>
         </div>
 
+        <!-- 🔎 快速買家檢索 -->
         <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100">
             <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <span class="w-1.5 h-5 bg-indigo-600 rounded-full"></span> 🔎 快速買家檢索
@@ -109,6 +116,7 @@
             </div>
         </div>
 
+        <!-- 🧮 運費二補計算機 -->
         <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100 space-y-4">
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                 <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -157,6 +165,7 @@
             </div>
         </div>
 
+        <!-- 📦 當前各團最新進度 -->
         <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
             <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <span class="w-1.5 h-5 bg-emerald-500 rounded-full"></span> 📦 當前各團最新進度
@@ -185,6 +194,7 @@
             </div>
         </div>
 
+        <!-- 公告規則與說明 -->
         <div class="space-y-4">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <button onclick="toggleSection('registerContent', 'registerArrow')"
@@ -278,6 +288,7 @@
             </div>
         </div>
 
+        <!-- 🔐 後台管理數量統計（密碼：920624） -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <button onclick="toggleAdminSection()"
                 class="w-full flex items-center justify-between p-4 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200/80 transition outline-none cursor-pointer">
@@ -349,7 +360,6 @@
 
         const ORDERS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=419241956`;
         const GROUPS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=1966121219`;
-        // 修正：補上 headers=0 確保第一列強制被讀取出來，不再被系統當成隱藏標題
         const SHIPPING_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=運費計算&headers=0`;
         const CART_ITEMS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=購物車&headers=0`;
         const CUSTOMER_FORM_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=顧客填單&headers=0`;
@@ -358,7 +368,7 @@
         let groupDatabase = [];
         let shippingPrices = [];
         let albumPrices = [];
-        let cartSheetPrices = []; 
+        let cartGroupItems = {}; 
         let japanStepPrices = []; 
         let customerFormDatabase = []; 
         let currentCalcMode = 'goods';
@@ -369,15 +379,23 @@
         ];
 
         // --- 購物車功能邏輯 ---
+        function handleGroupChange() {
+            document.getElementById('cartRowsContainer').innerHTML = '';
+            calculateCartTotal();
+            addCartRow();
+        }
+
         function addCartRow() {
             const container = document.getElementById('cartRowsContainer');
             const rowId = 'cart_row_' + Date.now();
+            const currentGroup = document.getElementById('cartGroupSelect').value;
 
             let optionsHtml = `<option value="">選擇商品...</option>`;
-            if (cartSheetPrices.length > 0) {
-                optionsHtml += cartSheetPrices.map(item =>
-                    `<option value="${item.name}" data-price="${item.price}">${item.name} ($${item.price})</option>`
-                ).join('');
+            
+            if (currentGroup && cartGroupItems[currentGroup]) {
+                cartGroupItems[currentGroup].forEach(item => {
+                    optionsHtml += `<option value="${item.name}" data-price="${item.price}">${item.name} ($${item.price})</option>`;
+                });
             }
 
             let styleOptionsHtml = MEMBER_STYLES.map(style => `<option value="${style === '無選款' ? '' : style}">${style}</option>`).join('');
@@ -520,11 +538,9 @@
                     </tr>
                 `;
 
-                // 正則拆解：能精確包容「🔹 品名款式(可含愛心) x 數量」
                 const regex = /🔹\s*([^\n\r]+?)\s*x\s*(\d+)/g;
                 let match;
                 while ((match = regex.exec(order.details)) !== null) {
-                    // 自動扣除後方可能夾帶的包含單價括號文字
                     let fullProdName = match[1].replace(/\s*\([^)]+\)/g, "").trim();
                     const qty = parseInt(match[2]) || 0;
                     productTotals[fullProdName] = (productTotals[fullProdName] || 0) + qty;
@@ -571,77 +587,6 @@
 
             document.getElementById('calcRowsContainer').innerHTML = '';
             addCalcRow();
-        }
-
-        function addCalcRow() {
-            const container = document.getElementById('calcRowsContainer');
-            const rowId = 'row_' + Date.now();
-
-            let optionsHtml = `<option value="">請選擇品項...</option>`;
-            const currentSource = (currentCalcMode === 'goods') ? shippingPrices : albumPrices;
-
-            if (currentSource.length > 0) {
-                optionsHtml += currentSource.map(item =>
-                    `<option value="${item.name}" data-price="${item.price}">${item.name} ($${item.price}/件)</option>`
-                ).join('');
-            }
-
-            const rowHtml = `
-                <div id="${rowId}" class="flex gap-2 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn">
-                    <select class="calcItemType flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleItemChange(this)">
-                        ${optionsHtml}
-                    </select>
-                    <div class="w-20">
-                        <input type="number" min="1" value="1" oninput="calculateLiveShipping()" class="calcItemQty w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 font-mono text-center text-xs md:text-sm">
-                    </div>
-                    <button onclick="removeCalcRow('${rowId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 text-sm cursor-pointer">✕</button>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', rowHtml);
-            calculateLiveShipping();
-        }
-
-        function handleItemChange(selectEl) {
-            const container = document.getElementById('calcRowsContainer');
-            const rows = container.querySelectorAll(':scope > div');
-            const selectedValue = selectEl.value;
-
-            if (!selectedValue) {
-                calculateLiveShipping();
-                return;
-            }
-
-            let firstMatchRow = null;
-            let targetQtyInput = null;
-            let duplicateRows = [];
-
-            rows.forEach(row => {
-                const currentSelect = row.querySelector('.calcItemType');
-                if (currentSelect && currentSelect.value === selectedValue) {
-                    if (!firstMatchRow) {
-                        firstMatchRow = row;
-                        targetQtyInput = row.querySelector('.calcItemQty');
-                    } else {
-                        duplicateRows.push(row);
-                    }
-                }
-            });
-
-            if (duplicateRows.length > 0) {
-                let extraQty = 0;
-                duplicateRows.forEach(row => {
-                    const qtyInp = row.querySelector('.calcItemQty');
-                    extraQty += parseInt(qtyInp.value) || 0;
-                    row.remove();
-                });
-
-                if (targetQtyInput) {
-                    const currentQty = parseInt(targetQtyInput.value) || 0;
-                    targetQtyInput.value = currentQty + extraQty;
-                }
-            }
-
-            calculateLiveShipping();
         }
 
         function calculateLiveShipping() {
@@ -714,7 +659,7 @@
             return new Promise((resolve, reject) => {
                 Papa.parse(url, {
                     download: true,
-                    header: true,
+                    header: false, 
                     skipEmptyLines: true,
                     complete: (results) => resolve(results.data),
                     error: (error) => reject(error)
@@ -736,7 +681,6 @@
             let liveNoticePendingVal = "待開放：暫無資料";
 
             data.table.rows.forEach((row, rowIndex) => {
-                // 第一列(0) 負責抓換檔公告
                 if (rowIndex === 0) {
                     if (row.c[10] && row.c[10].v !== null) liveNoticeOpenVal = String(row.c[10].v).trim();
                     if (row.c[11] && row.c[11].v !== null) liveNoticePendingVal = String(row.c[11].v).trim();
@@ -787,8 +731,9 @@
                 const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
                 const data = JSON.parse(jsonString);
 
-                cartSheetPrices = [];
+                cartGroupItems = {};
                 let groupOptions = [];
+                let groupColMap = [];
 
                 data.table.rows.forEach((row, rowIndex) => {
                     // 第 1 列 (rowIndex === 0)：抓團名 (A1, D1, G1...)
@@ -796,22 +741,35 @@
                         for (let colIdx = 0; colIdx < row.c.length; colIdx += 3) {
                             if (row.c[colIdx] && row.c[colIdx].v !== null) {
                                 const val = String(row.c[colIdx].v).trim();
-                                if (val !== "" && val !== "品名" && val !== "商品名稱") {
+                                if (val !== "") {
                                     groupOptions.push(val);
+                                    cartGroupItems[val] = [];
+                                    groupColMap.push({ name: val, colIdx: colIdx });
                                 }
                             }
                         }
                     }
 
-                    // 第 3 列起 (rowIndex >= 2)：抓商品價格 (A3+, B3+)
-                    if (rowIndex >= 2 && row.c && row.c[0] && row.c[0].v !== null) {
-                        const itemName = String(row.c[0].v).trim();
-                        if (itemName !== "" && itemName !== "品名" && itemName !== "商品名稱") {
-                            cartSheetPrices.push({
-                                name: itemName,
-                                price: row.c[1] && row.c[1].v !== null ? parseInt(row.c[1].v) : 0
-                            });
-                        }
+                    // 第 3 列起 (rowIndex >= 2)：抓各團專屬商品與價格
+                    if (rowIndex >= 2 && row.c) {
+                        groupColMap.forEach(group => {
+                            const nameCol = group.colIdx;
+                            const priceCol = group.colIdx + 1;
+
+                            if (row.c[nameCol] && row.c[nameCol].v !== null) {
+                                const itemName = String(row.c[nameCol].v).trim();
+                                if (itemName !== "" && itemName !== "品名" && itemName !== "定價") {
+                                    // 避免價格欄位為空時出錯，先確定陣列長度足夠
+                                    const itemPriceRaw = row.c.length > priceCol && row.c[priceCol] && row.c[priceCol].v !== null ? row.c[priceCol].v : 0;
+                                    const itemPrice = parseInt(itemPriceRaw) || 0;
+                                    
+                                    cartGroupItems[group.name].push({
+                                        name: itemName,
+                                        price: itemPrice
+                                    });
+                                }
+                            }
+                        });
                     }
                 });
 
@@ -835,7 +793,6 @@
 
                 customerFormDatabase = [];
                 data.table.rows.forEach((row, rowIndex) => {
-                    // 跳過第 1 列標題列 (A1~D1)
                     if (rowIndex === 0) return;
 
                     if (row.c && row.c[1] && row.c[1].v !== null && String(row.c[1].v).trim() !== "") {
@@ -879,7 +836,8 @@
                 descText.innerText = "運費資料同步成功";
                 addCalcRow();
 
-                addCartRow(); 
+                // 系統初始化完成後，呼叫 handleGroupChange 來正確戴入第一個團的商品並新增第一行購物車
+                handleGroupChange();
 
                 document.getElementById('syncStatus').className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800";
                 document.getElementById('syncStatus').innerText = "🟢 雲端資料同步成功！";
