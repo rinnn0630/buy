@@ -1,24 +1,40 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⛄️ 燐的代購系統</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <style>body { background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }</style>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+    </style>
 </head>
+
 <body class="min-h-screen py-10 px-4">
+
     <div class="max-w-4xl mx-auto space-y-8">
+
+        <!-- 雲端庫連線狀態 -->
         <div class="bg-white rounded-2xl shadow-sm p-6 text-center border border-slate-100">
             <h1 class="text-2xl font-bold text-slate-800 mb-2">🛍️ 訂單與團務查詢系統</h1>
-            <div id="syncStatus" class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 animate-pulse">🔄 雲端資料庫連線中...</div>
+            <div id="syncStatus"
+                class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 animate-pulse">
+                🔄 雲端資料庫連線中...
+            </div>
         </div>
 
+        <!-- 🛒 代購下單購物車（買家專用） -->
         <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100 space-y-4">
             <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <span class="w-1.5 h-5 bg-teal-500 rounded-full"></span> 🛒 代購下單購物車（買家專用）
             </h2>
+            <p class="text-xs text-slate-400">請在下方選取欲購買的商品與數量，確認無誤後可一鍵複製明細私訊傳給我唷！</p>
+            
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <div class="flex items-center gap-1.5">
                     <span class="text-xs font-bold text-slate-600 shrink-0">您的稱呼:</span>
@@ -31,57 +47,971 @@
                     </select>
                 </div>
                 <div class="flex justify-end items-center">
-                    <button onclick="addCartRow()" class="w-full sm:w-auto bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold px-4 py-1.5 rounded-lg shadow-sm transition cursor-pointer text-center">➕ 新增品項</button>
+                    <button onclick="addCartRow()"
+                        class="w-full sm:w-auto bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold px-4 py-1.5 rounded-lg shadow-sm transition cursor-pointer text-center">
+                        ➕ 新增品項
+                    </button>
                 </div>
             </div>
+
             <div id="cartRowsContainer" class="space-y-3"></div>
+
+            <!-- 結帳與表單區塊面版 -->
+            <div class="bg-teal-50/50 border border-teal-100 p-4 rounded-xl space-y-4">
+                <!-- 第一層：商品總計與複製按鈕 -->
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+                    <div class="w-full sm:w-auto text-center sm:text-left">
+                        <span class="text-teal-800 font-medium text-xs block mb-0.5">💰 購買商品總計 (不含國內外運費)</span>
+                        <span id="cartTotalPay" class="font-bold font-mono text-teal-700 text-xl">NT$ 0</span>
+                    </div>
+                    <button onclick="copyCartDetails()" class="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm px-5 py-2.5 rounded-xl transition shadow-sm cursor-pointer whitespace-nowrap">
+                        📋 複製訂單明細傳給團主
+                    </button>
+                </div>
+
+                <!-- 分隔線 -->
+                <hr class="border-teal-100">
+
+                <!-- 第二層：獨立放置在下方的正式表單填寫區 -->
+                <div class="flex flex-col items-center justify-center space-y-1.5 pt-1">
+                    <span class="text-xs text-amber-600 font-bold text-center animate-pulse flex items-center gap-1">
+                        ⚠️ 填單前請先私訊團主確認是否還有餘量唷！
+                    </span>
+                    <a href="https://docs.google.com/forms/d/e/1FAIpQLSdaQ1Wgr7GvF_Sy4uJICahMEFGf07uSX-usk2e1c_-BDVqDUw/viewform?usp=publish-editor" target="_blank" class="w-full max-w-md bg-indigo-600 hover:bg-indigo-700 text-white text-center font-semibold text-sm px-6 py-3 rounded-xl transition shadow-sm block cursor-pointer">
+                        📝 前往填寫正式代購表單
+                    </a>
+                </div>
             </div>
         </div>
 
-    <script>
-        // ... (省略部分變數宣告) ...
-        const CART_CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=0`; 
+        <!-- 🔎 快速買家檢索 -->
+        <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100">
+            <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-5 bg-indigo-600 rounded-full"></span> 🔎 快速買家檢索
+            </h2>
+            <form id="searchForm" class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-1">
+                    <input type="text" id="buyerInput" required placeholder="請輸入您的名稱"
+                        class="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition text-slate-700"
+                        disabled>
+                </div>
+                <button type="submit" id="searchBtn"
+                    class="bg-slate-400 text-white font-medium px-6 py-3 rounded-xl transition shadow-sm whitespace-nowrap cursor-not-allowed"
+                    disabled>
+                    請稍候
+                </button>
+            </form>
 
-        // 修改後的 fetch 邏輯
+            <div id="resultArea" class="mt-6 space-y-4 hidden">
+                <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                    <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">買家：</h3>
+                    <span id="resultBuyerName" class="text-xl font-bold text-indigo-600"></span>
+                </div>
+                <div id="ordersContainer" class="space-y-4"></div>
+            </div>
+
+            <div id="noResultArea"
+                class="mt-6 p-4 bg-amber-50 text-amber-800 rounded-xl text-center font-medium text-sm hidden">
+                ⚠️ 找不到該買家名稱，請確認是否輸入正確。
+            </div>
+        </div>
+
+        <!-- 🧮 運費二補計算機 -->
+        <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span class="w-1.5 h-5 bg-amber-500 rounded-full"></span> 🧮 運費二補計算機
+                </h2>
+
+                <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                    <button onclick="switchCalcMode('goods')" id="tab_goods"
+                        class="px-4 py-2 rounded-lg bg-white text-slate-800 shadow-sm transition cursor-pointer">
+                        ✨ 週邊計算
+                    </button>
+                    <button onclick="switchCalcMode('album')" id="tab_album"
+                        class="px-4 py-2 rounded-lg text-slate-500 hover:text-slate-700 transition cursor-pointer">
+                        💿 專輯計算
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <p id="calcDescText" class="text-xs text-slate-400">正在同步雲端單價...</p>
+                <button onclick="addCalcRow()"
+                    class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer">
+                    ➕ 新增品項
+                </button>
+            </div>
+
+            <div id="calcRowsContainer" class="space-y-3"></div>
+
+            <div class="grid grid-cols-3 gap-2 text-center text-xs pt-2">
+                <div id="japanPayBlock"
+                    class="bg-white border border-slate-100 p-3 rounded-xl shadow-inner flex flex-col justify-center">
+                    <span class="text-slate-400 block mb-0.5 scale-95">🇯🇵 日本國內運費 (<span id="resTotalQty"
+                            class="font-mono font-bold text-slate-700">0</span>件)</span>
+                    <span id="resJapanPay" class="font-bold font-mono text-slate-700 text-sm">NT$ 0</span>
+                </div>
+                <div id="intlPayBlock"
+                    class="bg-white border border-slate-100 p-3 rounded-xl shadow-inner flex flex-col justify-center">
+                    <span id="resTitlePay" class="text-slate-400 block mb-0.5 scale-95">✈️ 總國際運費</span>
+                    <span id="resIntlPay" class="font-bold font-mono text-slate-700 text-sm">NT$ 0</span>
+                </div>
+                <div id="totalPayBlock"
+                    class="bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl flex flex-col justify-center">
+                    <span class="text-indigo-600 font-medium block mb-0.5 scale-95">💵 預估二補總計</span>
+                    <span id="resTotalPay" class="font-bold font-mono text-indigo-700 text-base">NT$ 0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📦 當前各團最新進度 -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
+            <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-5 bg-emerald-500 rounded-full"></span> 📦 當前各團最新進度
+            </h2>
+
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-100 text-slate-400 text-sm font-semibold bg-slate-50">
+                            <th class="p-3 rounded-l-xl whitespace-nowrap">團名</th>
+                            <th class="p-3 whitespace-nowrap">運回時間</th>
+                            <th class="p-3 whitespace-nowrap">狀態</th>
+                            <th class="p-3 rounded-r-xl">二補計算與說明</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm text-slate-600 divide-y divide-slate-50" id="groupStatusTableDesktop">
+                        <tr>
+                            <td colspan="4" class="p-4 text-center text-slate-400">團務公告載入中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="block md:hidden space-y-4" id="groupStatusTableMobile">
+                <p class="text-center text-slate-400 text-sm py-4">團務公告載入中...</p>
+            </div>
+        </div>
+
+        <!-- 公告規則與說明 -->
+        <div class="space-y-4">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <button onclick="toggleSection('registerContent', 'registerArrow')"
+                    class="w-full flex items-center justify-between p-4 font-bold text-slate-700 bg-slate-50/50 hover:bg-slate-50 transition outline-none cursor-pointer">
+                    <span class="flex items-center gap-2 text-base text-slate-800">
+                        📋 登記規則公告 (點擊展開/收合)
+                    </span>
+                    <span id="registerArrow" class="text-slate-400 transition-transform duration-200">▼</span>
+                </button>
+                <div id="registerContent"
+                    class="hidden border-t border-slate-100 p-5 text-sm text-slate-600 space-y-3 leading-relaxed bg-white">
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li><strong>衡量自身能力：</strong>喊單前請衡量自身能力，確定要購買的品項再喊單登記。在我下單前還有名額都可以追加，如果真的不得已要取消請儘早通知我，在通知匯款時才取消會<span
+                                class="text-rose-600 font-semibold">黑單處理</span>（會先提醒）。</li>
+                        <li><strong>網店限購規則：</strong>網店有限購，熱門品項通常都是買多的客人優先，買少的客人順位會排在後面。</li>
+                        <li><strong>結算下單說明：</strong>訂單湊得差不多的時候，我會開始結算最後下單數量，陸續通知有排到的客人匯款，不會再排開他的單了（除非還有餘量可以追加）。結算時突然取消的話數量空下來我沒辦法接其他單遞補，日本運費不便宜，這樣只下單1個不劃算，所以我會把每單都盡量塞滿。</li>
+                        <li><strong>售後交易規範：</strong>交易過程如有任何不愉快，結束交易後將不再接您的單，避免後續出現其他糾紛。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <button onclick="toggleSection('noticeContent', 'noticeArrow')"
+                    class="w-full flex items-center justify-between p-4 font-bold text-slate-700 bg-slate-50/50 hover:bg-slate-50 transition outline-none cursor-pointer">
+                    <span class="flex items-center gap-2 text-base text-slate-800">
+                        📌 換檔須知公告 (點擊展開/收合)
+                    </span>
+                    <span id="noticeArrow" class="text-slate-400 transition-transform duration-200">▼</span>
+                </button>
+                <div id="noticeContent"
+                    class="hidden border-t border-slate-100 p-5 text-sm text-slate-600 space-y-4 leading-relaxed bg-white">
+                    <div>
+                        <h4 class="font-bold text-indigo-600 mb-1">📢 當前開放資訊</h4>
+                        <p id="liveNoticeOpen" class="pl-2 text-slate-600">載入中...</p>
+                        <p id="liveNoticePending" class="pl-2 text-slate-600">載入中...</p>
+                    </div>
+                    <hr class="border-slate-100">
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">💼 換檔服務資格（跟團免費服務）</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong>專輯/演唱會：</strong>跟我的團買碟</li>
+                            <li><strong>其他換檔：</strong>跟開團中的團（已付款尚未到貨）</li>
+                            <li><strong>FC：</strong>須提供會員證明（圖片須包含到期日期）</li>
+                            <li>長期跟團的客人可私訊登記長期換檔</li>
+                            <li>符合換檔資格我會主動私訊提供檔案，多次未跟團會從長期換檔名單內刪除</li>
+                        </ul>
+                    </div>
+                    <hr class="border-slate-100">
+                    <div class="bg-amber-50/60 p-4 rounded-xl border border-amber-100/70 space-y-2">
+                        <h4 class="font-bold text-amber-800 flex items-center gap-1">⚠️ 禮貌與互動規範</h4>
+                        <p class="text-xs text-amber-700 font-medium">提供換檔並非義務，私訊請有禮貌，我有權決定是否提供換檔。我每次都花很多時間整理檔案，基本禮貌應該不難做到。</p>
+                        <ul class="list-none space-y-1 text-slate-600 mt-2 pl-1">
+                            <li class="flex items-center gap-1">⭕️ 按表符、簡短回覆、貼圖</li>
+                            <li class="flex items-center gap-1 text-rose-600 font-medium">❌ 已讀不回</li>
+                        </ul>
+                        <p class="text-xs text-slate-400 mt-1">※ 訊息點兩下就能按表符了。已讀不回會先提醒一次，下次再放生就不會再接受換檔請求。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <button onclick="toggleSection('workflowContent', 'workflowArrow')"
+                    class="w-full flex items-center justify-between p-4 font-bold text-slate-700 bg-slate-50/50 hover:bg-slate-50 transition outline-none cursor-pointer">
+                    <span class="flex items-center gap-2 text-base text-slate-800">
+                        🛒 購買流程說明 (點擊展開/收合)
+                    </span>
+                    <span id="workflowArrow" class="text-slate-400 transition-transform duration-200">▼</span>
+                </button>
+                <div id="workflowContent" class="hidden border-t border-slate-100 p-5 text-sm text-slate-600 bg-white">
+                    <ol class="relative border-l border-slate-200 ml-2 space-y-4 text-slate-600">
+                        <li class="mb-2 ml-4">
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-indigo-50 text-indigo-600 font-bold rounded-full -left-3 ring-4 ring-white text-xs">1</span>
+                            <p class="font-semibold text-slate-800">私訊我的 FB</p>
+                        </li>
+                        <li class="mb-2 ml-4">
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-indigo-50 text-indigo-600 font-bold rounded-full -left-3 ring-4 ring-white text-xs">2</span>
+                            <p class="font-semibold text-slate-800">告知想購買的團名與商品品項</p>
+                            <p class="text-xs text-slate-400 bg-slate-50 p-2 rounded-lg mt-1 inline-block">範例：我想買 Snow Man 的新單曲 初回A</p>
+                            <p class="text-xs text-slate-500 mt-1">※ 請靜候我為您確認品項與結算總金額。</p>
+                        </li>
+                        <li class="mb-2 ml-4">
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-indigo-50 text-indigo-600 font-bold rounded-full -left-3 ring-4 ring-white text-xs">3</span>
+                            <p class="font-semibold text-slate-800">確認無誤後即可進行匯款</p>
+                            <div class="grid grid-cols-2 gap-2 mt-1 text-xs max-w-sm">
+                                <div class="bg-slate-50 p-2 rounded-lg"><strong>轉帳：</strong>回傳轉帳畫面截圖 / 複製文字</div>
+                                <div class="bg-slate-50 p-2 rounded-lg"><strong>無卡：</strong>拍攝紙本收據憑證</div>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🔐 後台管理數量統計（已同步自動化，密碼：920624） -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <button onclick="toggleAdminSection()"
+                class="w-full flex items-center justify-between p-4 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200/80 transition outline-none cursor-pointer">
+                <span class="flex items-center gap-2 text-base text-slate-800">
+                    📊 後台管理：商品下單數量總計與團員清單
+                </span>
+                <span id="adminArrow" class="text-slate-400">▼</span>
+            </button>
+            <div id="adminContent" class="hidden border-t border-slate-100 p-5 space-y-6 bg-white">
+                
+                <div id="adminAuthBlock" class="p-4 bg-slate-50 rounded-xl border border-slate-200 max-w-sm mx-auto text-center space-y-3">
+                    <p class="text-xs text-slate-500 font-medium">🔑 請輸入管理員密碼以查看統計資料</p>
+                    <div class="flex gap-2 justify-center">
+                        <input type="password" id="adminPwd" class="px-3 py-1.5 border border-slate-300 rounded-lg outline-none text-sm text-center">
+                        <button onclick="verifyAdminPassword()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs px-4 py-1.5 rounded-lg font-bold">登入</button>
+                    </div>
+                    <p id="authError" class="text-xs text-rose-500 font-medium hidden">❌ 密碼錯誤！</p>
+                </div>
+
+                <div id="adminDataBlock" class="hidden space-y-6">
+                    <div class="flex flex-wrap gap-2 items-center justify-between border-b border-slate-100 pb-2">
+                        <p class="text-xs text-emerald-600 font-bold">🟢 本地數據已完成與雲端「顧客填單」分頁串接，全自動動態統計中！</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1">📦 1. 團主集單下單總數 (自動加總各商品款式件數)</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-slate-400 bg-slate-50 font-semibold">
+                                        <th class="p-2.5">商品名稱與款式</th>
+                                        <th class="p-2.5 text-center">總計需下單數量</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminSummaryTable" class="divide-y divide-slate-100 text-slate-600">
+                                    <tr><td colspan="2" class="p-3 text-center text-slate-400">目前雲端暫無填單紀錄。</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1">👥 2. 雲端顧客填單購買清單 (即時更新)</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-slate-400 bg-slate-50 font-semibold">
+                                        <th class="p-2.5">填單時間</th>
+                                        <th class="p-2.5">買家名稱</th>
+                                        <th class="p-2.5">購買商品明細</th>
+                                        <th class="p-2.5 text-right">商品總金額</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminBuyersTable" class="divide-y divide-slate-100 text-slate-600">
+                                    <tr><td colspan="4" class="p-3 text-center text-slate-400">目前暫無填單紀錄。</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const SPREADSHEET_ID = "1iRFTcgHfn75kGTYMPlIihpUg-wzNoIuKJUQUEM8AwK4";
+
+        const ORDERS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=419241956`;
+        const GROUPS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=1966121219`;
+        const SHIPPING_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=運費計算`;
+        
+        const CART_CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=0`; 
+        const CART_ITEMS_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=購物車`;
+        const CUSTOMER_FORM_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=顧客填單`;
+
+        let orderDatabase = [];
+        let groupDatabase = [];
+        let shippingPrices = [];
+        let albumPrices = [];
+        let cartSheetPrices = []; 
+        let japanStepPrices = []; 
+        let customerFormDatabase = []; 
+        let currentCalcMode = 'goods';
+        let isAdminAuthenticated = false;
+
+        const MEMBER_STYLES = [
+            "無選款", "岩本💛", "深澤💜", "ラウ🤍", "渡辺💙", "向井🧡", "阿部💚", "目黒🖤", "宮舘❤️", "佐久間 🩷"
+        ];
+
+        // --- 購物車功能邏輯 ---
+        function addCartRow() {
+            const container = document.getElementById('cartRowsContainer');
+            const rowId = 'cart_row_' + Date.now();
+
+            let optionsHtml = `<option value="">選擇商品...</option>`;
+            if (cartSheetPrices.length > 0) {
+                optionsHtml += cartSheetPrices.map(item =>
+                    `<option value="${item.name}" data-price="${item.price}">${item.name} ($${item.price})</option>`
+                ).join('');
+            }
+
+            let styleOptionsHtml = MEMBER_STYLES.map(style => `<option value="${style === '無選款' ? '' : style}">${style}</option>`).join('');
+
+            const rowHtml = `
+                <div id="${rowId}" class="flex gap-2 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn">
+                    <select class="cartItemSelect flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="calculateCartTotal()">
+                        ${optionsHtml}
+                    </select>
+                    <select class="cartItemStyle w-24 sm:w-28 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm">
+                        ${styleOptionsHtml}
+                    </select>
+                    <div class="w-16 sm:w-20">
+                        <input type="number" min="1" value="1" oninput="calculateCartTotal()" class="cartItemQty w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 font-mono text-center text-xs md:text-sm">
+                    </div>
+                    <button onclick="removeCartRow('${rowId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 text-sm cursor-pointer">✕</button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', rowHtml);
+            calculateCartTotal();
+        }
+
+        function removeCartRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (row) row.remove();
+            calculateCartTotal();
+        }
+
+        function calculateCartTotal() {
+            const rows = document.querySelectorAll('#cartRowsContainer > div');
+            let totalPay = 0;
+
+            rows.forEach(row => {
+                const select = row.querySelector('.cartItemSelect');
+                const selectedOption = select.options[select.selectedIndex];
+                const price = selectedOption ? (parseInt(selectedOption.getAttribute('data-price')) || 0) : 0;
+                const qty = parseInt(row.querySelector('.cartItemQty').value) || 0;
+                totalPay += (qty * price);
+            });
+
+            document.getElementById('cartTotalPay').innerText = `NT$ ${totalPay}`;
+        }
+
+        function copyCartDetails() {
+            const buyerName = document.getElementById('cartBuyerName').value.trim() || "買家";
+            const groupName = document.getElementById('cartGroupSelect').value || "未註明團務";
+            const rows = document.querySelectorAll('#cartRowsContainer > div');
+            
+            let detailsText = `【⛄️ 燐的代購系統 - 訂單登記明細】\n`;
+            detailsText += `跟團團名：${groupName}\n`;
+            detailsText += `買家名稱：${buyerName}\n`;
+            detailsText += `-------------------------\n`;
+            
+            let hasItems = false;
+            let totalPay = 0;
+
+            rows.forEach(row => {
+                const select = row.querySelector('.cartItemSelect');
+                const selectedOption = select.options[select.selectedIndex];
+                const styleSelect = row.querySelector('.cartItemStyle');
+                const styleVal = styleSelect ? styleSelect.value : '';
+
+                if (selectedOption && select.value) {
+                    const name = select.value;
+                    const price = parseInt(selectedOption.getAttribute('data-price')) || 0;
+                    const qty = parseInt(row.querySelector('.cartItemQty').value) || 0;
+                    
+                    detailsText += `🔹 ${name}${styleVal} x ${qty} ($${price}/件)\n`;
+                    totalPay += (qty * price);
+                    hasItems = true;
+                }
+            });
+
+            if (!hasItems) {
+                alert("請先新增並選擇要購買的商品！");
+                return;
+            }
+
+            detailsText += `-------------------------\n`;
+            detailsText += `💵 商品總金額：NT$ ${totalPay}\n`;
+            detailsText += `※ 注意：此金額不包含後續二補的國內外運費。`;
+
+            navigator.clipboard.writeText(detailsText).then(() => {
+                alert("🎉 訂單明細已成功複製到剪貼簿！請直接私訊貼給團主確認。");
+            }).catch(err => {
+                alert("複製失敗，請手動選取複製。");
+            });
+        }
+
+        // --- 後台管理統計邏輯 ---
+        function toggleAdminSection() {
+            const content = document.getElementById('adminContent');
+            const arrow = document.getElementById('adminArrow');
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.innerText = '▲';
+                if (isAdminAuthenticated) {
+                    renderAdminDashboard();
+                }
+            } else {
+                content.classList.add('hidden');
+                arrow.innerText = '▼';
+            }
+        }
+
+        function verifyAdminPassword() {
+            const inputPwd = document.getElementById('adminPwd').value;
+            if (inputPwd === "920624") {
+                isAdminAuthenticated = true;
+                document.getElementById('adminAuthBlock').classList.add('hidden');
+                document.getElementById('adminDataBlock').classList.remove('hidden');
+                renderAdminDashboard();
+            } else {
+                document.getElementById('authError').classList.remove('hidden');
+            }
+        }
+
+        function renderAdminDashboard() {
+            const summaryBody = document.getElementById('adminSummaryTable');
+            const buyersBody = document.getElementById('adminBuyersTable');
+
+            summaryBody.innerHTML = '';
+            buyersBody.innerHTML = '';
+
+            if (customerFormDatabase.length === 0) {
+                summaryBody.innerHTML = `<tr><td colspan="2" class="p-3 text-center text-slate-400">目前雲端暫無填單數據。</td></tr>`;
+                buyersBody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-400">目前雲端暫無填單數據。</td></tr>`;
+                return;
+            }
+
+            let productTotals = {};
+
+            customerFormDatabase.forEach(order => {
+                buyersBody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2.5 text-slate-400 text-[11px] font-mono">${order.timestamp}</td>
+                        <td class="p-2.5 font-bold text-slate-800">${order.buyerName}</td>
+                        <td class="p-2.5 text-slate-600 whitespace-pre-line">${order.details}</td>
+                        <td class="p-2.5 text-right font-mono font-bold text-slate-700">NT$ ${order.totalPrice}</td>
+                    </tr>
+                `;
+
+                // 修正後的正則表達式：完美相容並抓取有選款式的「品名款式 x 數量」結構
+                const regex = /🔹\s*([^\n\r]+?)\s*x\s*(\d+)/g;
+                let match;
+                while ((match = regex.exec(order.details)) !== null) {
+                    // 自動扣除後方可能夾帶的包含單價括號文字（如：($625/件)），保持款式品名乾淨
+                    let fullProdName = match[1].replace(/\s*\([^)]+\)/g, "").trim();
+                    const qty = parseInt(match[2]) || 0;
+                    productTotals[fullProdName] = (productTotals[fullProdName] || 0) + qty;
+                }
+            });
+
+            const productEntries = Object.entries(productTotals);
+            if (productEntries.length === 0) {
+                summaryBody.innerHTML = `<tr><td colspan="2" class="p-3 text-center text-amber-500">⚠️ 明細中有抓到文字，但未能順利識別商品名稱，請確保買家貼上的格式包含「🔹 品名 x 數量」唷！</td></tr>`;
+            } else {
+                for (const [prodName, totalQty] of productEntries) {
+                    summaryBody.innerHTML += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-2.5 font-medium text-slate-700">${prodName}</td>
+                            <td class="p-2.5 text-center font-bold text-teal-600 font-mono text-sm">${totalQty} 件</td>
+                        </tr>
+                    `;
+                }
+            }
+        }
+
+        // --- 核心共用資料讀取與初始化邏輯 ---
+        function switchCalcMode(mode) {
+            currentCalcMode = mode;
+            const tabGoods = document.getElementById('tab_goods');
+            const tabAlbum = document.getElementById('tab_album');
+            const descText = document.getElementById('calcDescText');
+            const japanBlock = document.getElementById('japanPayBlock');
+            const resTitlePay = document.getElementById('resTitlePay');
+
+            if (mode === 'goods') {
+                tabGoods.className = "px-4 py-2 rounded-lg bg-white text-slate-800 shadow-sm transition cursor-pointer";
+                tabAlbum.className = "px-4 py-2 rounded-lg text-slate-500 hover:text-slate-700 transition cursor-pointer";
+                descText.innerText = "運費資料同步成功";
+                japanBlock.classList.remove('hidden');
+                resTitlePay.innerText = "✈️ 總國際運費";
+            } else {
+                tabAlbum.className = "px-4 py-2 rounded-lg bg-white text-slate-800 shadow-sm transition cursor-pointer";
+                tabGoods.className = "px-4 py-2 rounded-lg text-slate-500 hover:text-slate-700 transition cursor-pointer";
+                descText.innerText = "運費資料同步成功";
+                japanBlock.classList.add('hidden');
+                resTitlePay.innerText = "💿 專輯運費總計";
+            }
+
+            document.getElementById('calcRowsContainer').innerHTML = '';
+            addCalcRow();
+        }
+
+        function addCalcRow() {
+            const container = document.getElementById('calcRowsContainer');
+            const rowId = 'row_' + Date.now();
+
+            let optionsHtml = `<option value="">請選擇品項...</option>`;
+            const currentSource = (currentCalcMode === 'goods') ? shippingPrices : albumPrices;
+
+            if (currentSource.length > 0) {
+                optionsHtml += currentSource.map(item =>
+                    `<option value="${item.name}" data-price="${item.price}">${item.name} ($${item.price}/件)</option>`
+                ).join('');
+            }
+
+            const rowHtml = `
+                <div id="${rowId}" class="flex gap-2 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn">
+                    <select class="calcItemType flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleItemChange(this)">
+                        ${optionsHtml}
+                    </select>
+                    <div class="w-20">
+                        <input type="number" min="1" value="1" oninput="calculateLiveShipping()" class="calcItemQty w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 font-mono text-center text-xs md:text-sm">
+                    </div>
+                    <button onclick="removeCalcRow('${rowId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 text-sm cursor-pointer">✕</button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', rowHtml);
+            calculateLiveShipping();
+        }
+
+        function handleItemChange(selectEl) {
+            const container = document.getElementById('calcRowsContainer');
+            const rows = container.querySelectorAll(':scope > div');
+            const selectedValue = selectEl.value;
+
+            if (!selectedValue) {
+                calculateLiveShipping();
+                return;
+            }
+
+            let firstMatchRow = null;
+            let targetQtyInput = null;
+            let duplicateRows = [];
+
+            rows.forEach(row => {
+                const currentSelect = row.querySelector('.calcItemType');
+                if (currentSelect && currentSelect.value === selectedValue) {
+                    if (!firstMatchRow) {
+                        firstMatchRow = row;
+                        targetQtyInput = row.querySelector('.calcItemQty');
+                    } else {
+                        duplicateRows.push(row);
+                    }
+                }
+            });
+
+            if (duplicateRows.length > 0) {
+                let extraQty = 0;
+                duplicateRows.forEach(row => {
+                    const qtyInp = row.querySelector('.calcItemQty');
+                    extraQty += parseInt(qtyInp.value) || 0;
+                    row.remove();
+                });
+
+                if (targetQtyInput) {
+                    const currentQty = parseInt(targetQtyInput.value) || 0;
+                    targetQtyInput.value = currentQty + extraQty;
+                }
+            }
+
+            calculateLiveShipping();
+        }
+
+        function calculateLiveShipping() {
+            const rows = document.querySelectorAll('#calcRowsContainer > div');
+            let totalQty = 0;
+            let combinedPay = 0;
+
+            rows.forEach(row => {
+                const select = row.querySelector('.calcItemType');
+                const selectedOption = select.options[select.selectedIndex];
+                const price = selectedOption ? (parseInt(selectedOption.getAttribute('data-price')) || 0) : 0;
+                const qty = parseInt(row.querySelector('.calcItemQty').value) || 0;
+
+                totalQty += qty;
+                combinedPay += (qty * price);
+            });
+
+            let japanPay = 0;
+            let intlPay = 0;
+
+            if (currentCalcMode === 'goods') {
+                intlPay = combinedPay;
+
+                if (totalQty > 0 && japanStepPrices.length > 0) {
+                    let remainingQty = totalQty;
+                    let lastLimit = 0;
+
+                    for (let i = 0; i < japanStepPrices.length; i++) {
+                        const step = japanStepPrices[i];
+                        const stepMaxCapacity = step.limit - lastLimit;
+
+                        if (remainingQty <= stepMaxCapacity) {
+                            japanPay += remainingQty * step.fee;
+                            remainingQty = 0;
+                            break;
+                        } else {
+                            japanPay += stepMaxCapacity * step.fee;
+                            remainingQty -= stepMaxCapacity;
+                            lastLimit = step.limit;
+                        }
+                    }
+                    if (remainingQty > 0) {
+                        japanPay += remainingQty * japanStepPrices[japanStepPrices.length - 1].fee;
+                    }
+                }
+            } else {
+                intlPay = combinedPay;
+                japanPay = 0;
+            }
+
+            document.getElementById('resTotalQty').innerText = totalQty;
+            document.getElementById('resJapanPay').innerText = `NT$ ${japanPay}`;
+            document.getElementById('resIntlPay').innerText = `NT$ ${intlPay}`;
+            document.getElementById('resTotalPay').innerText = `NT$ ${japanPay + intlPay}`;
+        }
+
+        function toggleSection(contentId, arrowId) {
+            const content = document.getElementById(contentId);
+            const arrow = document.getElementById(arrowId);
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function parseCloudCSV(url) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(url, {
+                    download: true,
+                    header: false, 
+                    skipEmptyLines: true,
+                    complete: (results) => resolve(results.data),
+                    error: (error) => reject(error)
+                });
+            });
+        }
+
+        async function fetchCrossColumnPrices() {
+            const response = await fetch(SHIPPING_URL);
+            const text = await response.text();
+            const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+            const data = JSON.parse(jsonString);
+
+            shippingPrices = [];
+            albumPrices = [];
+            japanStepPrices = [];
+
+            let liveNoticeOpenVal = "目前開放中：暫無資料";
+            let liveNoticePendingVal = "待開放：暫無資料";
+
+            data.table.rows.forEach((row, rowIndex) => {
+                if (row.c[0] && row.c[0].v !== null && String(row.c[0].v).trim() !== "" && String(row.c[0].v).trim() !== "品名" && String(row.c[0].v).trim() !== "週邊品名") {
+                    shippingPrices.push({
+                        name: String(row.c[0].v).trim(),
+                        price: row.c[1] && row.c[1].v !== null ? parseInt(row.c[1].v) : 0
+                    });
+                }
+
+                if (row.c[3] && row.c[3].v !== null && String(row.c[3].v).trim() !== "" && String(row.c[3].v).trim() !== "週邊數量" && String(row.c[3].v).trim() !== "週邊數量上限") {
+                    const limitVal = parseInt(row.c[3].v) || 99999;
+                    const feeVal = row.c[4] && row.c[4].v !== null ? parseInt(row.c[4].v) : 0;
+                    japanStepPrices.push({ limit: limitVal, fee: feeVal });
+                }
+
+                if (row.c[6] && row.c[6].v !== null && String(row.c[6].v).trim() !== "" && String(row.c[6].v).trim() !== "專輯版本") {
+                    const albumName = String(row.c[6].v).trim();
+                    const domesticPrice = row.c[7] && row.c[7].v !== null ? parseInt(row.c[7].v) : 0;
+                    const internationalPrice = row.c[8] && row.c[8].v !== null ? parseInt(row.c[8].v) : 0;
+
+                    albumPrices.push({
+                        name: albumName,
+                        price: domesticPrice + internationalPrice
+                    });
+                }
+
+                if (rowIndex === 0) {
+                    if (row.c[10] && row.c[10].v !== null && String(row.c[10].v).trim() !== "") {
+                        liveNoticeOpenVal = String(row.c[10].v).trim();
+                    }
+                    if (row.c[11] && row.c[11].v !== null && String(row.c[11].v).trim() !== "") {
+                        liveNoticePendingVal = String(row.c[11].v).trim();
+                    }
+                }
+            });
+
+            document.getElementById('liveNoticeOpen').innerText = liveNoticeOpenVal;
+            document.getElementById('liveNoticePending').innerText = liveNoticePendingVal;
+            japanStepPrices.sort((a, b) => a.limit - b.limit);
+        }
+
         async function fetchCartSheetPrices() {
             try {
+                // 自動提取購物車第一列 (A1, D1, G1...) 的最新開團名稱，並從 A3 (第3列) 開始抓品項
                 const csvData = await parseCloudCSV(CART_CSV_URL);
-                cartSheetPrices = [];
                 let groupOptions = [];
-
+                cartSheetPrices = [];
+                
                 if (csvData.length > 0) {
-                    // 1. 抓取團名 (第 1 列: row 0)
-                    const firstRow = csvData[0];
-                    for (let col = 0; col < firstRow.length; col += 3) {
-                        if (firstRow[col] && firstRow[col].trim() !== "") {
-                            groupOptions.push(firstRow[col].trim());
+                    const firstRow = csvData[0]; // 第 1 列抓團名
+                    for (let colIdx = 0; colIdx < firstRow.length; colIdx += 3) {
+                        if (firstRow[colIdx] && firstRow[colIdx].trim() !== "" && firstRow[colIdx].trim() !== "品名" && firstRow[colIdx].trim() !== "商品名稱") {
+                            groupOptions.push(firstRow[colIdx].trim());
                         }
                     }
 
-                    // 2. 抓取商品 (第 3 列以後: row 2+)
-                    for (let rowIdx = 2; rowIdx < csvData.length; rowIdx++) {
-                        const row = csvData[rowIdx];
-                        // 每隔 3 欄一組 (A,B), (D,E), (G,H)...
-                        for (let col = 0; col < row.length; col += 3) {
-                            const name = row[col] ? row[col].trim() : "";
-                            const price = row[col + 1] ? parseInt(row[col + 1]) : 0;
-                            
-                            if (name !== "" && name !== "品名") {
-                                cartSheetPrices.push({ name: name, price: price });
-                            }
+                    // 從第 3 列 (Index 2) 開始抓商品價格
+                    for (let i = 2; i < csvData.length; i++) {
+                        const row = csvData[i];
+                        if (row[0] && row[0].trim() !== "") {
+                            const itemName = row[0].trim();
+                            const itemPrice = parseInt(row[1]) || 0;
+                            cartSheetPrices.push({ name: itemName, price: itemPrice });
                         }
                     }
                 }
 
-                // 更新選單
                 const groupSelect = document.getElementById('cartGroupSelect');
-                groupSelect.innerHTML = groupOptions.map(g => `<option value="${g}">${g}</option>`).join('');
-                
-            } catch (err) { console.error("資料讀取失敗：", err); }
+                if (groupOptions.length > 0) {
+                    groupSelect.innerHTML = groupOptions.map(g => `<option value="${g}">${g}</option>`).join('');
+                } else {
+                    groupSelect.innerHTML = `<option value="未註明團務">未命名團務</option>`;
+                }
+            } catch (err) {
+                console.error("購物車頁籤讀取失敗：", err);
+            }
         }
-        
-        // ... (其餘初始化與邏輯保持原樣) ...
+
+        async function fetchCustomerFormData() {
+            try {
+                const response = await fetch(CUSTOMER_FORM_URL);
+                const text = await response.text();
+                const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+                const data = JSON.parse(jsonString);
+
+                customerFormDatabase = [];
+                data.table.rows.forEach(row => {
+                    if (row.c[1] && row.c[1].v !== null && String(row.c[1].v).trim() !== "") {
+                        customerFormDatabase.push({
+                            timestamp: row.c[0] && row.c[0].f ? String(row.c[0].f) : (row.c[0] ? String(row.c[0].v) : '-'),
+                            buyerName: String(row.c[1].v).trim(),
+                            details: row.c[2] && row.c[2].v !== null ? String(row.c[2].v).trim() : '無明細',
+                            totalPrice: row.c[3] && row.c[3].v !== null ? String(row.c[3].v).trim() : '0'
+                        });
+                    }
+                });
+            } catch (err) {
+                console.error("顧客填單分頁抓取失敗：", err);
+            }
+        }
+
+        async function initSystem() {
+            try {
+                const ordersRes = await fetch(ORDERS_URL);
+                const ordersText = await ordersRes.text();
+                const ordersData = Papa.parse(ordersText, { header: true, skipEmptyLines: true }).data;
+
+                const groupsRes = await fetch(GROUPS_URL);
+                const groupsText = await groupsRes.text();
+                const groupsData = Papa.parse(groupsText, { header: true, skipEmptyLines: true }).data;
+
+                await fetchCrossColumnPrices();
+                await fetchCartSheetPrices(); 
+                await fetchCustomerFormData(); 
+
+                orderDatabase = ordersData;
+                groupDatabase = groupsData;
+
+                renderGroupTable();
+                
+                const tabGoods = document.getElementById('tab_goods');
+                const tabAlbum = document.getElementById('tab_album');
+                const descText = document.getElementById('calcDescText');
+                tabGoods.className = "px-4 py-2 rounded-lg bg-white text-slate-800 shadow-sm transition cursor-pointer";
+                tabAlbum.className = "px-4 py-2 rounded-lg text-slate-500 hover:text-slate-700 transition cursor-pointer";
+                descText.innerText = "運費資料同步成功";
+                addCalcRow();
+
+                addCartRow(); 
+
+                document.getElementById('syncStatus').className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800";
+                document.getElementById('syncStatus').innerText = "🟢 雲端資料同步成功！";
+                document.getElementById('buyerInput').disabled = false;
+                document.getElementById('searchBtn').disabled = false;
+                document.getElementById('searchBtn').className = "bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-xl transition shadow-sm cursor-pointer";
+                document.getElementById('searchBtn').innerText = "立即查詢";
+
+            } catch (error) {
+                console.error("同步失敗：", error);
+                document.getElementById('syncStatus').className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800";
+                document.getElementById('syncStatus').innerText = "🔴 連線失敗，請檢查試算表是否已點擊「發布到網路」";
+            }
+        }
+
+        function renderGroupTable() {
+            const desktopBody = document.getElementById('groupStatusTableDesktop');
+            const mobileContainer = document.getElementById('groupStatusTableMobile');
+
+            desktopBody.innerHTML = '';
+            mobileContainer.innerHTML = '';
+
+            if (groupDatabase.length === 0) {
+                const noDataHtml = `<tr><td colspan="4" class="p-4 text-center text-slate-400">目前暫無團務公告資料。</td></tr>`;
+                desktopBody.innerHTML = noDataHtml;
+                mobileContainer.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">目前暫無團務公告資料。</p>`;
+                return;
+            }
+
+            groupDatabase.forEach(g => {
+                let statusClass = 'bg-slate-100 text-slate-700';
+                const statusStr = g["狀態"] ? g["狀態"].trim() : '';
+
+                if (statusStr === '已抵台') statusClass = 'bg-emerald-50 text-emerald-700 font-medium border border-emerald-200/50';
+                else if (statusStr === 'Focus已下單' || statusStr === '已下單') statusClass = 'bg-blue-50 text-blue-700 font-medium border border-blue-200/50';
+                else if (statusStr === '待下單') statusClass = 'bg-rose-50 text-rose-700 font-medium border border-rose-200/50';
+
+                const groupName = g["團名"] || '未註明';
+                const shipTime = g["運回時間"] || '-';
+                const backupDesc = g["二補計算"] || g["二補計算說明"] || g["二補"] || '-';
+
+                desktopBody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-semibold text-slate-700">${groupName}</td>
+                        <td class="p-4 text-slate-500 text-sm whitespace-nowrap">${shipTime}</td>
+                        <td class="p-4"><span class="px-2.5 py-0.5 rounded-full text-xs ${statusClass}">${statusStr || '未知'}</span></td>
+                        <td class="p-4 text-slate-500 text-xs max-w-xs md:max-w-none break-words">${backupDesc}</td>
+                    </tr>
+                `;
+
+                mobileContainer.innerHTML += `
+                    <div class="p-4 bg-slate-50/70 rounded-xl border border-slate-100 space-y-2.5 shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-bold text-slate-800 text-base">${groupName}</h4>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs ${statusClass}">${statusStr || '未知'}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-xs">
+                            <div class="bg-white p-2 rounded-lg border border-slate-100 flex flex-col justify-center items-center">
+                                <span class="text-slate-400 block mb-0.5 scale-90">運回時間</span>
+                                <span class="font-medium text-slate-700">${shipTime}</span>
+                            </div>
+                            <div class="bg-white p-2 rounded-lg border border-slate-100 col-span-2 px-3 flex flex-col justify-center">
+                                <span class="text-slate-400 block mb-0.5 scale-90">二補計算與說明</span>
+                                <span class="font-sans text-slate-600 break-words">${backupDesc}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
         initSystem();
+
+        document.getElementById('searchForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const keyword = document.getElementById('buyerInput').value.trim();
+            const container = document.getElementById('ordersContainer');
+
+            container.innerHTML = '';
+            if (!keyword) return;
+
+            const matched = orderDatabase.filter(o =>
+                o["買家名"] && o["買家名"].toLowerCase().includes(keyword.toLowerCase())
+            );
+
+            if (matched.length === 0) {
+                document.getElementById('resultArea').classList.add('hidden');
+                document.getElementById('noResultArea').classList.remove('hidden');
+            } else {
+                document.getElementById('noResultArea').classList.add('hidden');
+                document.getElementById('resultArea').classList.remove('hidden');
+
+                document.getElementById('resultBuyerName').innerText = matched[0]["買家名"];
+
+                matched.forEach(o => {
+                    let statusColor = 'bg-slate-100 text-slate-700';
+                    const currentStatus = o["狀態"] ? o["狀態"].trim() : '';
+                    if (currentStatus === '已匯款' || currentStatus === '已到貨') statusColor = 'bg-emerald-100 text-emerald-800 font-semibold';
+                    else if (currentStatus === '未匯款' || currentStatus === '缺貨') statusColor = 'bg-rose-100 text-rose-800 font-semibold';
+
+                    const currentGroup = o["團名"] ? o["團名"].trim() : '';
+                    const matchedGroupInfo = groupDatabase.find(g => g["團名"] && g["團名"].trim() === currentGroup);
+                    const groupStatusText = matchedGroupInfo ? matchedGroupInfo["狀態"] : '';
+
+                    container.innerHTML += `
+                        <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-3 shadow-sm">
+                            <div class="flex flex-wrap justify-between items-center gap-2">
+                                <div class="flex items-center gap-2">
+                                    ${o["團名"] ? `<span class="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-semibold">📍 ${o["團名"]}</span>` : '<span class="text-slate-400 text-xs">未分類團務</span>'}
+                                </div>
+                                <div class="flex gap-1.5">
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}">個人：${currentStatus || '未註明'}</span>
+                                    ${groupStatusText ? `<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-700">大團：${groupStatusText}</span>` : ''}
+                                </div>
+                            </div>
+                            
+                            <div class="text-sm text-slate-700 bg-white p-3 rounded-xl border border-slate-100">
+                                <span class="text-slate-400 text-xs block mb-1">購買商品</span>
+                                <p class="font-medium text-slate-800">${o["購買商品"] || '無'}</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div class="bg-white p-3 rounded-xl border border-slate-100">
+                                    <span class="text-slate-400 text-xs block mb-1">商品金額</span>
+                                    <p class="font-bold text-slate-900">NT$ ${o["商品金額"] || '0'}</p>
+                                </div>
+                                <div class="bg-white p-3 rounded-xl border border-slate-100">
+                                    <span class="text-slate-400 text-xs block mb-1">二補明細 / 二補</span>
+                                    <p class="font-mono text-xs text-indigo-600 font-semibold">${o["二補"] || '無'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        });
     </script>
 </body>
+
 </html>
