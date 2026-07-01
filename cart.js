@@ -6,37 +6,29 @@ function handleGroupChange() {
     addCartRow();
 }
 
-function getAvailableItems() {
-    const currentGroup = document.getElementById('cartGroupSelect').value;
-    if (!currentGroup || !cartGroupItems[currentGroup]) return [];
-    
-    // 取得目前已選擇的商品
-    const selectedItems = [];
+// 判斷某個商品+款式組合是否已被選擇（排除自己這列）
+function isCombinationSelected(name, style, excludeRowId) {
     const rows = document.querySelectorAll('#cartRowsContainer > div');
-    rows.forEach(row => {
+    for (const row of rows) {
+        if (row.id === excludeRowId) continue;
         const select = row.querySelector('.cartItemSelect');
-        if (select && select.value) {
-            selectedItems.push(select.value);
+        const styleSelect = row.querySelector('.cartItemStyle');
+        if (select && select.value === name && styleSelect && styleSelect.value === style) {
+            return true;
         }
-    });
-    
-    // 回傳所有商品，但標記哪些已被選
-    return cartGroupItems[currentGroup].map(item => ({
-        ...item,
-        disabled: selectedItems.includes(item.name)
-    }));
+    }
+    return false;
 }
 
 function addCartRow() {
     const container = document.getElementById('cartRowsContainer');
     const rowId = 'cart_row_' + Date.now();
-    const items = getAvailableItems();
+    const currentGroup = document.getElementById('cartGroupSelect').value;
 
     let optionsHtml = `<option value="">選擇商品...</option>`;
-    if (items.length > 0) {
-        items.forEach(item => {
-            const disabledAttr = item.disabled ? 'disabled class="text-slate-300"' : '';
-            optionsHtml += `<option value="${item.name}" data-price="${item.price}" ${disabledAttr}>${item.name} ($${item.price})${item.disabled ? ' - 已選' : ''}</option>`;
+    if (currentGroup && cartGroupItems[currentGroup]) {
+        cartGroupItems[currentGroup].forEach(item => {
+            optionsHtml += `<option value="${item.name}" data-price="${item.price}">${item.name} ($${item.price})</option>`;
         });
     }
 
@@ -50,7 +42,7 @@ function addCartRow() {
                 ${optionsHtml}
             </select>
             <div class="flex gap-2 items-center flex-[1] min-w-0">
-                <select class="cartItemStyle flex-1 min-w-0 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm">
+                <select class="cartItemStyle flex-1 min-w-0 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleCartItemChange(this)">
                     ${styleOptionsHtml}
                 </select>
                 <input type="number" min="1" value="1" oninput="calculateCartTotal()" class="cartItemQty w-14 sm:w-16 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 font-mono text-center text-xs md:text-sm shrink-0">
@@ -62,51 +54,34 @@ function addCartRow() {
     calculateCartTotal();
 }
 
-function handleCartItemChange(changedSelect) {
-    // 先更新所有下拉選單的可用選項
-    refreshAllCartOptions();
-    // 再計算總額
-    calculateCartTotal();
-}
-
-function refreshAllCartOptions() {
-    const rows = document.querySelectorAll('#cartRowsContainer > div');
-    const currentGroup = document.getElementById('cartGroupSelect').value;
+function handleCartItemChange(changedEl) {
+    // 檢查是否有重複的商品+款式組合
+    const row = changedEl.closest('[id^="cart_row_"]');
+    const rowId = row ? row.id : null;
+    const select = row.querySelector('.cartItemSelect');
+    const styleSelect = row.querySelector('.cartItemStyle');
     
-    if (!currentGroup || !cartGroupItems[currentGroup]) return;
-    
-    // 收集所有已被選擇的商品（排除當前空格）
-    const selectedNames = [];
-    rows.forEach(row => {
-        const select = row.querySelector('.cartItemSelect');
-        if (select && select.value) {
-            selectedNames.push(select.value);
+    if (select && styleSelect && select.value) {
+        const name = select.value;
+        const style = styleSelect.value;
+        
+        if (isCombinationSelected(name, style, rowId)) {
+            alert(`「${name}${style ? ' ' + style : ''}」已經選過了，請選擇其他商品或款式！`);
+            // 恢復原狀
+            if (changedEl.classList.contains('cartItemSelect')) {
+                select.value = '';
+            } else {
+                styleSelect.value = '';
+            }
         }
-    });
+    }
     
-    // 更新每個下拉選單
-    rows.forEach(row => {
-        const select = row.querySelector('.cartItemSelect');
-        if (!select) return;
-        
-        const currentValue = select.value;
-        let optionsHtml = `<option value="">選擇商品...</option>`;
-        
-        cartGroupItems[currentGroup].forEach(item => {
-            // 只有當這個商品被其他列選中時才禁用
-            const isSelectedByOther = selectedNames.includes(item.name) && item.name !== currentValue;
-            const disabledAttr = isSelectedByOther ? 'disabled class="text-slate-300"' : '';
-            optionsHtml += `<option value="${item.name}" data-price="${item.price}" ${disabledAttr} ${item.name === currentValue ? 'selected' : ''}>${item.name} ($${item.price})${isSelectedByOther ? ' - 已選' : ''}</option>`;
-        });
-        
-        select.innerHTML = optionsHtml;
-    });
+    calculateCartTotal();
 }
 
 function removeCartRow(rowId) {
     const row = document.getElementById(rowId);
     if (row) row.remove();
-    refreshAllCartOptions();
     calculateCartTotal();
 }
 
