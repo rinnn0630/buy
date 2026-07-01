@@ -1,5 +1,4 @@
 // 購物車邏輯
-
 function handleGroupChange() {
     document.getElementById('cartRowsContainer').innerHTML = '';
     calculateCartTotal();
