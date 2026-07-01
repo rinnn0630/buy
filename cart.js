@@ -22,17 +22,20 @@ function addCartRow() {
         `<option value="${style === '無選款' ? '' : style}">${style}</option>`
     ).join('');
 
+    // 外層：手機直排 (flex-col) / 電腦橫排 (sm:flex-row)
     const rowHtml = `
-        <div id="${rowId}" class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn space-y-2">
-            <select class="cartItemSelect w-full max-w-[250px] px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleCartSelectChange(this)">
+        <div id="${rowId}" class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn">
+            <!-- 品項：手機全寬，電腦佔 2 份 -->
+            <select class="cartItemSelect w-full sm:flex-[2] sm:min-w-0 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleCartSelectChange(this)">
                 ${optionsHtml}
             </select>
-            <div class="flex gap-2 items-center">
-                <select class="cartItemStyle w-28 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleCartStyleChange(this)">
+            <!-- 款式+數量+刪除：手機全寬，電腦佔 1 份 -->
+            <div class="flex gap-2 items-center sm:flex-[1] sm:min-w-0">
+                <select class="cartItemStyle flex-1 sm:min-w-0 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleCartStyleChange(this)">
                     ${styleOptionsHtml}
                 </select>
-                <input type="number" min="1" value="1" oninput="calculateCartTotal()" class="cartItemQty w-14 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 font-mono text-center text-xs md:text-sm shrink-0">
-                <button onclick="removeCartRow('${rowId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1 text-sm cursor-pointer shrink-0">✕</button>
+                <input type="number" min="1" value="1" oninput="calculateCartTotal()" class="cartItemQty w-14 sm:w-16 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 font-mono text-center text-xs md:text-sm shrink-0">
+                <button onclick="removeCartRow('${rowId}')" class="text-rose-500 hover:text-rose-700 font-bold px-1 sm:px-2 text-sm cursor-pointer shrink-0">✕</button>
             </div>
         </div>
     `;
@@ -40,25 +43,27 @@ function addCartRow() {
     calculateCartTotal();
 }
 
+// 商品變更時檢查重複
 function handleCartSelectChange(selectEl) {
     checkDuplicateInRow(selectEl.closest('[id^="cart_row_"]'));
     calculateCartTotal();
 }
 
+// 款式變更時檢查重複
 function handleCartStyleChange(styleEl) {
     checkDuplicateInRow(styleEl.closest('[id^="cart_row_"]'));
     calculateCartTotal();
 }
 
+// 檢查同一行內的商品+款式是否與其他行重複
 function checkDuplicateInRow(row) {
     const select = row.querySelector('.cartItemSelect');
     const styleSelect = row.querySelector('.cartItemStyle');
     if (!select || !styleSelect || !select.value) return;
 
     const name = select.value;
-    const style = styleSelect.value; // 空字串代表無選款
+    const style = styleSelect.value; // 空字串代表「無選款」
 
-    // 檢查其他行是否有完全相同的組合
     const allRows = document.querySelectorAll('#cartRowsContainer > div');
     for (const otherRow of allRows) {
         if (otherRow === row) continue;
@@ -66,10 +71,8 @@ function checkDuplicateInRow(row) {
         const otherStyle = otherRow.querySelector('.cartItemStyle');
         if (!otherSelect || !otherStyle || !otherSelect.value) continue;
         if (otherSelect.value === name && otherStyle.value === style) {
-            alert(`「${name}${style ? ' ' + style : ''}」已經選過了！請選擇其他商品或款式。`);
-            // 清空這個 row 的選擇
-            select.value = '';
-            // 款式可保留或重置，這裡保留款式不動，讓使用者重選商品
+            alert(`「${name}${style ? ' ' + style : '」'}已經選過了！請選擇其他商品或款式。`);
+            select.value = ''; // 清空重複的選擇
             return;
         }
     }
