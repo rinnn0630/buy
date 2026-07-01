@@ -6,19 +6,6 @@ function handleGroupChange() {
     addCartRow();
 }
 
-function isCombinationSelected(name, style, excludeRowId) {
-    const rows = document.querySelectorAll('#cartRowsContainer > div');
-    for (const row of rows) {
-        if (row.id === excludeRowId) continue;
-        const select = row.querySelector('.cartItemSelect');
-        const styleSelect = row.querySelector('.cartItemStyle');
-        if (select && select.value === name && styleSelect && styleSelect.value === style) {
-            return true;
-        }
-    }
-    return false;
-}
-
 function addCartRow() {
     const container = document.getElementById('cartRowsContainer');
     const rowId = 'cart_row_' + Date.now();
@@ -37,11 +24,11 @@ function addCartRow() {
 
     const rowHtml = `
         <div id="${rowId}" class="flex flex-wrap sm:flex-nowrap gap-2 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn">
-            <select class="cartItemSelect flex-[2] min-w-0 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleCartItemChange(this)">
+            <select class="cartItemSelect flex-[2] min-w-0 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="calculateCartTotal()">
                 ${optionsHtml}
             </select>
             <div class="flex gap-2 items-center flex-[1] min-w-0">
-                <select class="cartItemStyle flex-1 min-w-0 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleCartItemChange(this)">
+                <select class="cartItemStyle flex-1 min-w-0 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm">
                     ${styleOptionsHtml}
                 </select>
                 <input type="number" min="1" value="1" oninput="calculateCartTotal()" class="cartItemQty w-14 sm:w-16 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 font-mono text-center text-xs md:text-sm shrink-0">
@@ -50,33 +37,6 @@ function addCartRow() {
         </div>
     `;
     container.insertAdjacentHTML('beforeend', rowHtml);
-    calculateCartTotal();
-}
-
-function handleCartItemChange(changedEl) {
-    const row = changedEl.closest('[id^="cart_row_"]');
-    if (!row) return;
-    
-    const rowId = row.id;
-    const select = row.querySelector('.cartItemSelect');
-    const styleSelect = row.querySelector('.cartItemStyle');
-    
-    // 只有商品和款式都選了才檢查（款式預設空字串也要檢查）
-    if (select && select.value && styleSelect) {
-        const name = select.value;
-        const style = styleSelect.value;
-        
-        if (isCombinationSelected(name, style, rowId)) {
-            alert(`「${name}${style ? ' ' + style : ''}」已經選過了！\n\n同品項不同款可以分開選，但完全相同的組合不能重複。`);
-            // 恢復成空值
-            if (changedEl.classList.contains('cartItemSelect')) {
-                select.value = '';
-            } else {
-                styleSelect.value = '';
-            }
-        }
-    }
-    
     calculateCartTotal();
 }
 
