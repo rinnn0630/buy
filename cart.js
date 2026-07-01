@@ -24,11 +24,11 @@ function addCartRow() {
 
     const rowHtml = `
         <div id="${rowId}" class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn space-y-2">
-            <select class="cartItemSelect w-full max-w-[250px] px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="calculateCartTotal()">
+            <select class="cartItemSelect w-full max-w-[250px] px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleCartSelectChange(this)">
                 ${optionsHtml}
             </select>
             <div class="flex gap-2 items-center">
-                <select class="cartItemStyle w-28 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm">
+                <select class="cartItemStyle w-28 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="handleCartStyleChange(this)">
                     ${styleOptionsHtml}
                 </select>
                 <input type="number" min="1" value="1" oninput="calculateCartTotal()" class="cartItemQty w-14 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 font-mono text-center text-xs md:text-sm shrink-0">
@@ -38,6 +38,41 @@ function addCartRow() {
     `;
     container.insertAdjacentHTML('beforeend', rowHtml);
     calculateCartTotal();
+}
+
+function handleCartSelectChange(selectEl) {
+    checkDuplicateInRow(selectEl.closest('[id^="cart_row_"]'));
+    calculateCartTotal();
+}
+
+function handleCartStyleChange(styleEl) {
+    checkDuplicateInRow(styleEl.closest('[id^="cart_row_"]'));
+    calculateCartTotal();
+}
+
+function checkDuplicateInRow(row) {
+    const select = row.querySelector('.cartItemSelect');
+    const styleSelect = row.querySelector('.cartItemStyle');
+    if (!select || !styleSelect || !select.value) return;
+
+    const name = select.value;
+    const style = styleSelect.value; // 空字串代表無選款
+
+    // 檢查其他行是否有完全相同的組合
+    const allRows = document.querySelectorAll('#cartRowsContainer > div');
+    for (const otherRow of allRows) {
+        if (otherRow === row) continue;
+        const otherSelect = otherRow.querySelector('.cartItemSelect');
+        const otherStyle = otherRow.querySelector('.cartItemStyle');
+        if (!otherSelect || !otherStyle || !otherSelect.value) continue;
+        if (otherSelect.value === name && otherStyle.value === style) {
+            alert(`「${name}${style ? ' ' + style : ''}」已經選過了！請選擇其他商品或款式。`);
+            // 清空這個 row 的選擇
+            select.value = '';
+            // 款式可保留或重置，這裡保留款式不動，讓使用者重選商品
+            return;
+        }
+    }
 }
 
 function removeCartRow(rowId) {
