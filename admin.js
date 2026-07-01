@@ -1,3 +1,4 @@
+// 後台管理
 let isAdminAuthenticated = false;
 
 function toggleAdminSection() {
@@ -57,10 +58,12 @@ function renderAdminDashboard() {
     });
 
     const entries = Object.entries(productTotals);
+    let overallTotal = 0;
     if (entries.length === 0) {
         summaryBody.innerHTML = `<tr><td colspan="2" class="p-3 text-center text-amber-500">⚠️ 明細中有抓到文字，但未能順利識別商品名稱，請確保買家貼上的格式包含「🔹 品名 x 數量」唷！</td></tr>`;
     } else {
         entries.forEach(([name, total]) => {
+            overallTotal += total;
             summaryBody.innerHTML += `
                 <tr class="hover:bg-slate-50">
                     <td class="p-2.5 font-medium text-slate-700">${name}</td>
@@ -68,5 +71,13 @@ function renderAdminDashboard() {
                 </tr>
             `;
         });
+
+        // 加入總計列
+        summaryBody.innerHTML += `
+            <tr class="bg-slate-100 font-bold">
+                <td class="p-2.5 text-slate-800">📦 所有品項總件數</td>
+                <td class="p-2.5 text-center font-bold text-indigo-700 font-mono text-sm">${overallTotal} 件</td>
+            </tr>
+        `;
     }
 }
