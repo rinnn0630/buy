@@ -23,11 +23,11 @@ function addCartRow() {
     ).join('');
 
     const rowHtml = `
-        <div id="${rowId}" class="flex flex-wrap sm:flex-nowrap gap-2 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn">
-            <select class="cartItemSelect flex-[2] min-w-0 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="calculateCartTotal()">
+        <div id="${rowId}" class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn space-y-2">
+            <select class="cartItemSelect w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="calculateCartTotal()">
                 ${optionsHtml}
             </select>
-            <div class="flex gap-2 items-center flex-[1] min-w-0">
+            <div class="flex gap-2 items-center">
                 <select class="cartItemStyle flex-1 min-w-0 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm">
                     ${styleOptionsHtml}
                 </select>
@@ -51,7 +51,7 @@ function calculateCartTotal() {
     let totalPay = 0;
     rows.forEach(row => {
         const select = row.querySelector('.cartItemSelect');
-        if (!select) return;
+        if (!select || !select.value) return;
         const selectedOption = select.options[select.selectedIndex];
         const price = selectedOption ? (parseInt(selectedOption.getAttribute('data-price')) || 0) : 0;
         const qty = parseInt(row.querySelector('.cartItemQty')?.value) || 0;
@@ -63,33 +63,49 @@ function calculateCartTotal() {
 function copyCartDetails() {
     const buyerName = document.getElementById('cartBuyerName').value.trim() || "買家";
     const groupName = document.getElementById('cartGroupSelect').value || "未註明團務";
+    const currentGroup = document.getElementById('cartGroupSelect').value;
     const rows = document.querySelectorAll('#cartRowsContainer > div');
 
-    let detailsText = `【⛄️ 燐的代購系統 - 訂單登記明細】\n`;
-    detailsText += `跟團團名：${groupName}\n`;
-    detailsText += `買家名稱：${buyerName}\n`;
-    detailsText += `-------------------------\n`;
-
-    let hasItems = false;
-    let totalPay = 0;
+    const selectedItems = [];
     rows.forEach(row => {
         const select = row.querySelector('.cartItemSelect');
         if (!select || !select.value) return;
         const selectedOption = select.options[select.selectedIndex];
         const styleVal = row.querySelector('.cartItemStyle')?.value || '';
         const qty = parseInt(row.querySelector('.cartItemQty')?.value) || 0;
-
-        if (selectedOption) {
-            detailsText += `🔹 ${select.value}${styleVal ? ' ' + styleVal : ''} x ${qty} ($${selectedOption.getAttribute('data-price')}/件)\n`;
-            totalPay += qty * parseInt(selectedOption.getAttribute('data-price'));
-            hasItems = true;
-        }
+        
+        selectedItems.push({
+            name: select.value,
+            price: parseInt(selectedOption.getAttribute('data-price')) || 0,
+            style: styleVal,
+            qty: qty
+        });
     });
 
-    if (!hasItems) {
+    if (selectedItems.length === 0) {
         alert("請先新增並選擇要購買的商品！");
         return;
     }
+
+    // 依照試算表原始順序排序
+    if (currentGroup && cartGroupItems[currentGroup]) {
+        const orderMap = {};
+        cartGroupItems[currentGroup].forEach((item, index) => {
+            orderMap[item.name] = index;
+        });
+        selectedItems.sort((a, b) => (orderMap[a.name] ?? 999) - (orderMap[b.name] ?? 999));
+    }
+
+    let detailsText = `【⛄️ 燐的代購系統 - 訂單登記明細】\n`;
+    detailsText += `跟團團名：${groupName}\n`;
+    detailsText += `買家名稱：${buyerName}\n`;
+    detailsText += `-------------------------\n`;
+
+    let totalPay = 0;
+    selectedItems.forEach(item => {
+        detailsText += `🔹 ${item.name}${item.style ? ' ' + item.style : ''} x ${item.qty} ($${item.price}/件)\n`;
+        totalPay += item.qty * item.price;
+    });
 
     detailsText += `-------------------------\n`;
     detailsText += `💵 商品總金額：NT$ ${totalPay}\n`;
