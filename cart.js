@@ -6,7 +6,6 @@ function handleGroupChange() {
     addCartRow();
 }
 
-// 判斷某個商品+款式組合是否已被選擇（排除自己這列）
 function isCombinationSelected(name, style, excludeRowId) {
     const rows = document.querySelectorAll('#cartRowsContainer > div');
     for (const row of rows) {
@@ -55,19 +54,21 @@ function addCartRow() {
 }
 
 function handleCartItemChange(changedEl) {
-    // 檢查是否有重複的商品+款式組合
     const row = changedEl.closest('[id^="cart_row_"]');
-    const rowId = row ? row.id : null;
+    if (!row) return;
+    
+    const rowId = row.id;
     const select = row.querySelector('.cartItemSelect');
     const styleSelect = row.querySelector('.cartItemStyle');
     
-    if (select && styleSelect && select.value) {
+    // 只有商品和款式都選了才檢查（款式預設空字串也要檢查）
+    if (select && select.value && styleSelect) {
         const name = select.value;
         const style = styleSelect.value;
         
         if (isCombinationSelected(name, style, rowId)) {
-            alert(`「${name}${style ? ' ' + style : ''}」已經選過了，請選擇其他商品或款式！`);
-            // 恢復原狀
+            alert(`「${name}${style ? ' ' + style : ''}」已經選過了！\n\n同品項不同款可以分開選，但完全相同的組合不能重複。`);
+            // 恢復成空值
             if (changedEl.classList.contains('cartItemSelect')) {
                 select.value = '';
             } else {
@@ -105,7 +106,6 @@ function copyCartDetails() {
     const currentGroup = document.getElementById('cartGroupSelect').value;
     const rows = document.querySelectorAll('#cartRowsContainer > div');
 
-    // 收集所有已選商品
     const selectedItems = [];
     rows.forEach(row => {
         const select = row.querySelector('.cartItemSelect');
@@ -136,7 +136,6 @@ function copyCartDetails() {
         selectedItems.sort((a, b) => (orderMap[a.name] ?? 999) - (orderMap[b.name] ?? 999));
     }
 
-    // 生成明細文字
     let detailsText = `【⛄️ 燐的代購系統 - 訂單登記明細】\n`;
     detailsText += `跟團團名：${groupName}\n`;
     detailsText += `買家名稱：${buyerName}\n`;
