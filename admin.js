@@ -35,14 +35,12 @@ function renderAdminDashboard() {
     if (customerFormDatabase.length === 0) {
         summaryBody.innerHTML = `<tr><td colspan="2" class="p-3 text-center text-slate-400">目前雲端暫無填單數據。</td></tr>`;
         buyersBody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-400">目前雲端暫無填單數據。</td></tr>`;
-        console.log('後台：customerFormDatabase 為空');
         return;
     }
 
     const productTotals = {};
 
-    customerFormDatabase.forEach((order, idx) => {
-        // 顯示買家清單
+    customerFormDatabase.forEach(order => {
         buyersBody.innerHTML += `
             <tr class="hover:bg-slate-50">
                 <td class="p-2.5 text-slate-400 text-[11px] font-mono">${order.timestamp}</td>
@@ -52,24 +50,16 @@ function renderAdminDashboard() {
             </tr>
         `;
 
-        // 解析明細，支援「🔹 品名(可含款式與括號說明) x 數量」或「🔹 品名 x 數量」
         const lines = order.details.split('\n');
         lines.forEach(line => {
-            // 去除可能的開頭空白
             const trimmed = line.trim();
             if (!trimmed.startsWith('🔹')) return;
 
-            // 方法1：用正則抓取品名與數量
             const match = trimmed.match(/🔹\s*(.+?)\s*x\s*(\d+)/);
-            if (!match) {
-                console.warn('無法解析行：', trimmed);
-                return;
-            }
+            if (!match) return;
 
             let rawName = match[1].trim();
-            // 移除結尾的 ($$單價/件) 括號
             rawName = rawName.replace(/\s*\(\$\d+\/件\)\s*$/, '').trim();
-
             const qty = parseInt(match[2]) || 0;
             if (rawName && qty > 0) {
                 productTotals[rawName] = (productTotals[rawName] || 0) + qty;
@@ -77,9 +67,61 @@ function renderAdminDashboard() {
         });
     });
 
-    console.log('商品加總結果：', productTotals);
+    // ----- 建立排序用對照表 -----
+    // 商品順序：來自購物車分頁中所有商品出現的順序（去重）
+    const productOrder = [];
+    if (typeof cartGroupItems !== 'undefined') {
+        const seen = new Set();
+        for (const group in cartGroupItems) {
+            cartGroupItems[group].forEach(item => {
+                if (!seen.has(item.name)) {
+                    seen.add(item.name);
+                    productOrder.push(item.name);
+                }
+            });
+        }
+    }
 
+    // 款式順序：MEMBER_STYLES 去掉「無選款」後的值，加上空字串在最前面
+    const styleOrder = [''];
+    MEMBER_STYLES.forEach(s => {
+        if (s !== '無選款') styleOrder.push(s);
+    });
+
+    // 輔助函數：拆分完整名稱 -> { productName, style }
+    function splitName(fullName) {
+        // 嘗試從結尾匹配已知款式（最長優先）
+        const sortedStyles = [...styleOrder].filter(s => s !== '').sort((a, b) => b.length - a.length);
+        for (const style of sortedStyles) {
+            if (fullName.endsWith(style)) {
+                return {
+                    productName: fullName.slice(0, -style.length).trim(),
+                    style: style
+                };
+            }
+        }
+        return { productName: fullName, style: '' };
+    }
+
+    // 排序
     const entries = Object.entries(productTotals);
+    entries.sort((a, b) => {
+        const infoA = splitName(a[0]);
+        const infoB = splitName(b[0]);
+
+        const idxA = productOrder.indexOf(infoA.productName);
+        const idxB = productOrder.indexOf(infoB.productName);
+        const orderA = idxA === -1 ? 999 : idxA;
+        const orderB = idxB === -1 ? 999 : idxB;
+
+        if (orderA !== orderB) return orderA - orderB;
+
+        // 同商品比款式
+        const styleIdxA = styleOrder.indexOf(infoA.style);
+        const styleIdxB = styleOrder.indexOf(infoB.style);
+        return (styleIdxA === -1 ? 999 : styleIdxA) - (styleIdxB === -1 ? 999 : styleIdxB);
+    });
+
     let overallTotal = 0;
 
     if (entries.length === 0) {
@@ -96,7 +138,7 @@ function renderAdminDashboard() {
         });
     }
 
-    // 強制顯示總計列（即使整體為 0 也顯示）
+    // 總計列
     summaryBody.innerHTML += `
         <tr class="bg-slate-100 font-bold">
             <td class="p-2.5 text-slate-800">📦 所有品項總件數</td>
