@@ -23,17 +23,17 @@ function addCartRow() {
     ).join('');
 
     const rowHtml = `
-        <div id="${rowId}" class="flex gap-2 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn">
-            <select class="cartItemSelect flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="calculateCartTotal()">
+        <div id="${rowId}" class="flex flex-wrap sm:flex-nowrap gap-2 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fadeIn">
+            <select class="cartItemSelect flex-[2] min-w-0 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm" onchange="calculateCartTotal()">
                 ${optionsHtml}
             </select>
-            <select class="cartItemStyle w-24 sm:w-28 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm">
-                ${styleOptionsHtml}
-            </select>
-            <div class="w-16 sm:w-20">
-                <input type="number" min="1" value="1" oninput="calculateCartTotal()" class="cartItemQty w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 font-mono text-center text-xs md:text-sm">
+            <div class="flex gap-2 items-center flex-[1] min-w-0">
+                <select class="cartItemStyle flex-1 min-w-0 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 text-xs md:text-sm">
+                    ${styleOptionsHtml}
+                </select>
+                <input type="number" min="1" value="1" oninput="calculateCartTotal()" class="cartItemQty w-14 sm:w-16 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-700 font-mono text-center text-xs md:text-sm shrink-0">
+                <button onclick="removeCartRow('${rowId}')" class="text-rose-500 hover:text-rose-700 font-bold px-1 text-sm cursor-pointer shrink-0">✕</button>
             </div>
-            <button onclick="removeCartRow('${rowId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 text-sm cursor-pointer">✕</button>
         </div>
     `;
     container.insertAdjacentHTML('beforeend', rowHtml);
